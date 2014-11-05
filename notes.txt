@@ -1,0 +1,2 @@
+try to make this with GemCutter
+http://www.createjs.com/Demos/EaselJS/SpriteSheet.html
