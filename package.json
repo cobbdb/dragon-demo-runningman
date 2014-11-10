@@ -1,0 +1,12 @@
+{
+  "name": "runningman",
+  "devDependencies": {
+    "grunt": "latest",
+    "grunt-contrib-uglify": "latest",
+    "grunt-browserify": "latest",
+    "matchdep": "latest"
+  },
+  "dependencies": {
+    "dragonjs": "latest"
+  }
+}

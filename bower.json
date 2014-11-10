@@ -1,0 +1,6 @@
+{
+  "name": "runningman",
+  "main": "dist/runningman.min.js",
+  "dependencies": {
+  }
+}
