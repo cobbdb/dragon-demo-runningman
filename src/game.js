@@ -1,6 +1,9 @@
-var Dragon = require('dragonjs');
+var Dragon = require('dragonjs'),
+    Game = Dragon.Game,
+    Main = require('./screens/main.js');
 
-Dragon.Game.canvas.style.backgroundColor = '';
-Dragon.Game.addScreenSet([
+Game.canvas.style.backgroundColor = '';
+Game.addScreens([
+    Main()
 ]);
-Dragon.Game.run();
+Game.run();

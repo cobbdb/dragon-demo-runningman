@@ -1,24 +1,28 @@
-var Dragon = require('dragonjs');
+var Dragon = require('dragonjs'),
+    Credits = require('../screens/credits.js'),
+    Game = Dragon.Game,
+    KeyDown = Dragon.Keyboard;
 
-/**
- * --> I really hate all the "Dragon"s
- * floating around everywhere.
- */
-module.exports = Dragon.Sprite({
-    name: 'sky',
-    strip: Dragon.AnimationStrip({
-        sheet: Dragon.SpriteSheet({
-            src: 'sky.png',
-            onload: function () {
-                /**
-                 * This is when the asset becomes
-                 * available, so there needs to be
-                 * some kind of eventing.
-                 */
+module.exports = function () {
+    return Dragon.Sprite({
+        name: 'sky',
+        strip: Dragon.AnimationStrip({
+            sheet: Dragon.SpriteSheet({
+                src: 'sky.png'
+            }),
+            start: Dragon.Point(),
+            size: Dragon.Dimension(123, 321),
+            frames: 1
+        })
+    }).extend({
+        update: function () {
+            // Example of a sprite conditionally adding
+            // a new screen to the system.
+            if (KeyDown.name('N')) {
+                Game.addScreens(
+                    Credits()
+                );
             }
-        }),
-        start: Dragon.Point(),
-        size: Dragon.Dimension(123, 321),
-        frames: 1
-    })
-});
+        }
+    });
+};
