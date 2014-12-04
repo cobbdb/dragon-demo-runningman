@@ -3,8 +3,8 @@ var Dragon = require('dragonjs'),
     CollisionHandler = Dragon.CollisionHandler,
     Game = Dragon.Game;
 
-module.exports = CollisionHandler(
-    'environ',
-    Dimension(5, 5),
-    Game.canvas
-);
+module.exports = CollisionHandler({
+    name: 'environ',
+    gridSize: Dimension(5, 5),
+    canvasSize: Game.canvas
+});

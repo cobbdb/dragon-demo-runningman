@@ -1,31 +1,30 @@
 var Dragon = require('dragonjs'),
-    Credits = require('../screens/credits.js'),
     Game = Dragon.Game,
-    KeyDown = Dragon.Keyboard,
+    Point = Dragon.Point,
+    Sprite = Dragon.Sprite,
+    AnimationStrip = Dragon.AnimationStrip,
+    SpriteSheet = Dragon.SpriteSheet,
+    Credits = require('../screens/credits.js'),
     collisions = require('../collisions/main.js');
 
-module.exports = function () {
-    return Dragon.Sprite({
-        name: 'sky',
-        strip: Dragon.AnimationStrip({
-            sheet: Dragon.SpriteSheet({
-                src: 'sky.png'
-            }),
-            start: Dragon.Point(),
-            size: Dragon.Dimension(123, 321),
-            frames: 1
+module.exports = Sprite({
+    name: 'sky',
+    strip: AnimationStrip({
+        sheet: SpriteSheet({
+            src: 'sky.png'
         }),
-        mask: 1234,
-        collisionSets: collisions
-    }).extend({
-        update: function () {
-            // Example of a sprite conditionally adding
-            // a new screen to the system.
-            if (KeyDown.name('N')) {
-                Game.addScreens(
-                    Credits()
-                );
-            }
+        start: Point(),
+        size: Game.canvas,
+        frames: 1
+    })
+}).extend({
+    update: function () {
+        // Example of a sprite conditionally adding
+        // a new screen to the system.
+        if (KeyDown.name('N')) {
+            Game.addScreens(
+                Credits()
+            );
         }
-    });
-};
+    }
+});
