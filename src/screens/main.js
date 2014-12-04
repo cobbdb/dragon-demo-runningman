@@ -1,12 +1,17 @@
 var Dragon = require('dragonjs'),
-    Sky = require('../sprites/sky.js');
+    Sky = require('../sprites/sky.js'),
+    Runner = require('../sprites/runner.js'),
+    Ground = require('../sprites/ground.js'),
+    collisions = require('../collisions/main.js');
 
 module.exports = function () {
     return Dragon.Screen({
-        name: 'runningscreen',
-        collisionSets: [],
+        name: 'main',
+        collisionSets: collisions,
         spriteSet: [
-            Sky()
+            Sky(),
+            Runner(),
+            Ground()
         ]
     });
 };

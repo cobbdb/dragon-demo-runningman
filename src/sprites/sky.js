@@ -1,7 +1,8 @@
 var Dragon = require('dragonjs'),
     Credits = require('../screens/credits.js'),
     Game = Dragon.Game,
-    KeyDown = Dragon.Keyboard;
+    KeyDown = Dragon.Keyboard,
+    collisions = require('../collisions/main.js');
 
 module.exports = function () {
     return Dragon.Sprite({
@@ -13,7 +14,9 @@ module.exports = function () {
             start: Dragon.Point(),
             size: Dragon.Dimension(123, 321),
             frames: 1
-        })
+        }),
+        mask: 1234,
+        collisionSets: collisions
     }).extend({
         update: function () {
             // Example of a sprite conditionally adding
