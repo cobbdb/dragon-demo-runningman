@@ -1,6 +1,4 @@
 var Dragon = require('dragonjs'),
-    Game = Dragon.Game,
-    KeyDown = Dragon.Keyboard,
     Point = Dragon.Point,
     Dimension = Dragon.Dimension,
     Rect = Dragon.Rectangle,
@@ -9,11 +7,6 @@ var Dragon = require('dragonjs'),
     SpriteSheet = Dragon.SpriteSheet,
     collisions = require('../collisions/main.js');
 
-/**
- * New use case.. how to tile sprites?
- * This should tile horizontally for the width
- * of the canvas.
- */
 module.exports = Sprite({
     name: 'ground',
     collisionSets: collisions,
@@ -27,8 +20,8 @@ module.exports = Sprite({
         }),
         size: Dimension(81, 79)
     }),
-    scale: 0.4,
-    pos: Point(0, 100)
+    pos: Point(100, 100),
+    size: Dimension(66, 115)
 }).extend({
     update: function () {
         this.base.update();
