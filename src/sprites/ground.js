@@ -1,4 +1,5 @@
 var Dragon = require('dragonjs'),
+    canvas = Dragon.Game.canvas,
     Point = Dragon.Point,
     Dimension = Dragon.Dimension,
     Rect = Dragon.Rectangle,
@@ -11,8 +12,8 @@ module.exports = Sprite({
     name: 'ground',
     collisionSets: collisions,
     mask: Rect(
-        Point(100, 100),
-        Dimension(66, 115)
+        Point(0, canvas.height - 115),
+        Dimension(canvas.width, 100)
     ),
     strip: AnimationStrip({
         sheet: SpriteSheet({
@@ -20,10 +21,6 @@ module.exports = Sprite({
         }),
         size: Dimension(81, 79)
     }),
-    pos: Point(100, 100),
-    size: Dimension(66, 115)
-}).extend({
-    update: function () {
-        this.base.update();
-    }
+    pos: Point(0, canvas.height - 115),
+    scale: 0.4
 });
