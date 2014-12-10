@@ -9,7 +9,7 @@ var Dragon = require('dragonjs'),
     SpriteSheet = Dragon.SpriteSheet,
     collisions = require('../collisions/main.js');
 
-var runner = Sprite({
+module.exports = Sprite({
     name: 'runner',
     collisionSets: collisions,
     mask: Rect(
@@ -26,9 +26,15 @@ var runner = Sprite({
         speed: 5
     }),
     scale: 0.4,
-    pos: Point(100, 100)
+    pos: Point(100, 100),
+    on: {
+        'collide/ground': function () {
+            console.log('Runner: Colliding with ground!');
+        }
+    }
 }).extend({
     update: function () {
+        console.log('runner update');
         if (KeyDown.name(' ')) {
             console.log('Runner: Jumping!');
         }
@@ -56,9 +62,3 @@ var runner = Sprite({
         this.base.update();
     }
 });
-
-runner.on('collide/ground', function () {
-    console.log('Runner: Colliding with ground!');
-});
-
-module.exports = runner;

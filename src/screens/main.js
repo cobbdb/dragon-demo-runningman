@@ -5,14 +5,12 @@ var Dragon = require('dragonjs'),
     Ground = require('../sprites/ground.js'),
     collisions = require('../collisions/main.js');
 
-module.exports = function () {
-    return Screen({
-        name: 'main',
-        collisionSets: collisions,
-        spriteSet: [
-            Sky,
-            Runner,
-            Ground
-        ]
-    });
-};
+module.exports = Screen({
+    name: 'main',
+    collisionSets: collisions,
+    spriteSet: [
+        Sky,
+        Runner,
+        Ground
+    ]
+});
