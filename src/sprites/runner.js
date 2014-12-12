@@ -11,7 +11,10 @@ var Dragon = require('dragonjs'),
 
 module.exports = Sprite({
     name: 'runner',
-    collisionSets: collisions,
+    collisionSets: [
+        collisions,
+        Game.screenTap
+    ],
     mask: Rect(
         Point(100, 100),
         Dimension(66, 115)
@@ -25,36 +28,40 @@ module.exports = Sprite({
         frames: 12,
         speed: 5
     }),
-    scale: 0.4,
     pos: Point(100, 100),
+    size: Dimension(66, 115),
+    rotation: 0.4,
     on: {
         'collide/ground': function () {
             console.log('Runner: Colliding with ground!');
+        },
+        'collide/screentap': function () {
+            console.log('Runner: Clicked!');
         }
     }
 }).extend({
     update: function () {
-        console.log('runner update');
         if (KeyDown.name(' ')) {
-            console.log('Runner: Jumping!');
+            this.rotation += 0.3;
+            this.rotation %= 2 * Math.PI;
         }
 
         if (KeyDown.code(37)) {
             // Left arrow.
-            this.speed.x = -4;
+            this.speed.x = -10;
         } else if (KeyDown.code(39)) {
             // Right arrow.
-            this.speed.x = 4;
+            this.speed.x = 10;
         } else {
             this.speed.x = 0;
         }
 
         if (KeyDown.code(38)) {
             // Up arrow.
-            this.speed.y = -4;
+            this.speed.y = -10;
         } else if (KeyDown.code(40)) {
             // Down arrow.
-            this.speed.y = 4;
+            this.speed.y = 10;
         } else {
             this.speed.y = 0;
         }

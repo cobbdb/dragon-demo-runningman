@@ -12,8 +12,8 @@ module.exports = Sprite({
     name: 'ground',
     collisionSets: collisions,
     mask: Rect(
-        Point(0, canvas.height - 115),
-        Dimension(canvas.width, 100)
+        Point(0, canvas.height - 79),
+        Dimension(canvas.width, 79)
     ),
     strip: AnimationStrip({
         sheet: SpriteSheet({
@@ -21,6 +21,5 @@ module.exports = Sprite({
         }),
         size: Dimension(81, 79)
     }),
-    pos: Point(0, canvas.height - 115),
-    scale: 0.4
+    pos: Point(0, canvas.height - 79)
 });
