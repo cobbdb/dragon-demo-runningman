@@ -499,6 +499,11 @@ module.exports = {
     },
     get frameRate () {
         return frameRate;
+    },
+    draw: function (ctx) {
+        ctx.font = '30px Verdana';
+        ctx.fillStyle = 'rgba(250, 50, 50, 0.5)';
+        ctx.fillText(frameRate, 20, 50);
     }
 };
 
@@ -574,8 +579,17 @@ module.exports = {
     screen: function (name) {
         return screenMap[name];
     },
-    addScreens: function (set) {
-        screensToAdd = screensToAdd.concat(set);
+    /**
+     * @param {Array|Screen} opts.set
+     * @param {Function} [opts.onload]
+     */
+    addScreens: function (opts) {
+        var onload = opts.onload || function () {};
+        screensToAdd = screensToAdd.concat(opts.set);
+        /**
+         * onload should be some behaviors after all
+         * screens have finished loading.
+         */
     },
     removeScreen: function (screen) {
         screen.removed = true;
@@ -653,6 +667,7 @@ module.exports = {
         });
         if (debug) {
             tapCollisionSet.draw(ctx);
+            FrameCounter.draw(ctx);
         }
     }
 };
@@ -916,8 +931,17 @@ module.exports = function (opts) {
         sprite: function (name) {
             return spriteMap[name];
         },
-        addSprites: function (set) {
-            spritesToAdd = spritesToAdd.concat(set);
+        /**
+         * @param {Array|Sprite} opts.set
+         * @param {Function} [opts.onload]
+         */
+        addSprites: function (opts) {
+            var onload = opts.onload || function () {};
+            spritesToAdd = spritesToAdd.concat(opts.set);
+            /**
+             * Run onload after all sprites are done loading
+             * ... but how to know when that occurs??
+             */
         },
         removeSprite: function (sprite) {
             sprite.removed = true;
@@ -1090,13 +1114,17 @@ var cache = {};
  * load a single time - returning cached
  * data on subsequent calls.
  * @param {String} opts.src
+ * @param {Function} [opts.onload]
  */
 module.exports = function (opts) {
-    var img;
+    var img,
+        onload = opts.onload || function () {};
 
     // Check if already loaded and cached.
     if (opts.src in cache) {
-        return cache[opts.src];
+        img = cache[opts.src];
+        onload(img);
+        return img;
     }
 
     // Create and cache the new image.
@@ -1106,6 +1134,7 @@ module.exports = function (opts) {
 
     img.onload = function () {
         img.ready = true;
+        onload(img);
     };
 
     img.src = 'assets/img/' + opts.src;
@@ -1156,9 +1185,14 @@ var Dragon = require('dragonjs'),
     Game = Dragon.Game,
     mainScreen = require('./screens/main.js');
 
-Game.addScreens([
-    mainScreen
-]);
+Game.addScreens({
+    set: mainScreen,
+    onload: function () {
+        Game.run({
+            debug: true
+        });
+    }
+});
 Game.run({
     debug: true
 });
