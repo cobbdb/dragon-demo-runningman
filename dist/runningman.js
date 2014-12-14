@@ -251,12 +251,8 @@ module.exports = function (opts) {
     }
 
     return BaseClass({
-        id: function () {
-            return instanceId;
-        },
-        name: function () {
-            return opts.name;
-        },
+        id: instanceId,
+        name: opts.name,
         mask: opts.mask || Rectangle(),
         move: function (x, y) {
             this.mask.move(x, y);
@@ -268,6 +264,11 @@ module.exports = function (opts) {
             var leaf = this.leaf;
             collisionSets.forEach(function (handler) {
                 handler.update(leaf);
+            });
+        },
+        teardown: function () {
+            collisionSets.forEach(function (handler) {
+                handler.teardown();
             });
         },
         addCollision: function (id) {
@@ -385,7 +386,12 @@ module.exports = function (opts) {
                         }
                     });
                 });
-                // Clear the collision set after it's been processed.
+            }
+        },
+        teardown: function () {
+            var i,
+                len = activeCollisions.length;
+            for (i = 0; i < len; i += 1) {
                 activeCollisions[i] = [];
             }
         }
@@ -513,11 +519,10 @@ var CollisionHandler = require('./collision-handler.js'),
     Dimension = require('./dimension.js'),
     Circle = require('./circle.js'),
     Collidable = require('./collidable.js'),
-    FrameCounter = require('./frame-counter.js');
+    FrameCounter = require('./frame-counter.js'),
+    Mouse = require('./mouse.js');
 
-var pressEventName,
-    endEventName,
-    ctx,
+var ctx,
     debug = false,
     tapCollisionSet,
     heartbeat = false,
@@ -533,14 +538,10 @@ if (window.innerWidth >= 500) {
     canvas.width = 320;
     canvas.height = 480;
     canvas.style.border = '1px solid #000';
-    pressEventName = 'mousedown';
-    endEventName = 'mouseup';
 } else {
     // Mobile devices.
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    pressEventName = 'touchstart';
-    endEventName = 'touchend';
 }
 
 tapCollisionSet = CollisionHandler({
@@ -549,16 +550,10 @@ tapCollisionSet = CollisionHandler({
     canvasSize: canvas
 });
 ctx = canvas.getContext('2d');
-document.addEventListener(pressEventName, function (event) {
+Mouse.on.down(function () {
     tapCollisionSet.update(Collidable({
         name: 'screentap',
-        mask: Circle(
-            Point(
-                event.offsetX,
-                event.offsetY
-            ),
-            12
-        )
+        mask: Circle(Mouse.offset, 10)
     }));
 });
 document.body.appendChild(canvas);
@@ -569,12 +564,6 @@ document.body.appendChild(canvas);
 module.exports = {
     canvas: canvas,
     ctx: ctx,
-    pressEventName: function () {
-        return {
-            start: pressEventName,
-            end: endEventName
-        };
-    },
     screenTap: tapCollisionSet,
     screen: function (name) {
         return screenMap[name];
@@ -612,11 +601,9 @@ module.exports = {
                 screen.start();
             });
             heartbeat = window.setInterval(function () {
-                if (debug) {
-                    console.log('beat');
-                }
                 that.update();
                 that.draw();
+                that.teardown();
                 FrameCounter.countFrame();
             }, speed);
         }
@@ -629,6 +616,13 @@ module.exports = {
         });
     },
     update: function () {
+        if (Mouse.is.down) {
+            tapCollisionSet.update(Collidable({
+                name: 'screentap',
+                mask: Circle(Mouse.offset, 12)
+            }));
+        }
+
         // Settle screen tap events.
         tapCollisionSet.handleCollisions();
 
@@ -641,10 +635,10 @@ module.exports = {
             // Update the master screen list after updates.
             screensToAdd.forEach(function (screen) {
                 screens.push(screen);
-                if (screen.name()) {
-                    screenMap[screen.name()] = screen;
+                if (screen.name) {
+                    screenMap[screen.name] = screen;
                 }
-                screen.trigger('ready');
+                screen.trigger('ready', screen);
             });
             // Sort by descending sprite depths.
             screens.sort(function (a, b) {
@@ -666,13 +660,21 @@ module.exports = {
             screen.draw(ctx, debug);
         });
         if (debug) {
-            tapCollisionSet.draw(ctx);
             FrameCounter.draw(ctx);
+            if (Mouse.is.down) {
+                tapCollisionSet.draw(ctx);
+            }
         }
+    },
+    teardown: function () {
+        tapCollisionSet.teardown();
+        screens.forEach(function (screen) {
+            screen.teardown();
+        });
     }
 };
 
-},{"./circle.js":6,"./collidable.js":7,"./collision-handler.js":8,"./dimension.js":10,"./frame-counter.js":12,"./point.js":17}],14:[function(require,module,exports){
+},{"./circle.js":6,"./collidable.js":7,"./collision-handler.js":8,"./dimension.js":10,"./frame-counter.js":12,"./mouse.js":16,"./point.js":17}],14:[function(require,module,exports){
 var counter = 0;
 
 module.exports = {
@@ -741,33 +743,101 @@ module.exports = {
 };
 
 },{}],16:[function(require,module,exports){
-var Game = require('./game.js'),
-    isDown = false;
+var Point = require('./point.js'),
+    Vector = require('./vector.js'),
+    isDown = false,
+    isDragging = false,
+    current = Point(),
+    last = Point(),
+    shift = Vector(),
+    startEventName,
+    moveEventName,
+    endEventName;
+
+if (window.innerWidth >= 500) {
+    startEventName = 'mousedown';
+    moveEventName = 'mousemove';
+    endEventName = 'mouseup';
+} else {
+    startEventName = 'touchstart';
+    moveEventName = 'touchmove';
+    endEventName = 'touchend';
+}
 
 document.addEventListener(
-    Game.pressEventName.start,
+    startEventName,
     function (event) {
         isDown = true;
+        current.x = event.offsetX;
+        current.y = event.offsetY;
     }
 );
 document.addEventListener(
-    Game.pressEventName.end,
+    endEventName,
     function (event) {
-        isDown = false;
+        isDown = isDragging = false;
+    }
+);
+document.addEventListener(
+    moveEventName,
+    function (event) {
+        last.x = current.x;
+        last.y = current.y;
+        current.x = event.offsetX;
+        current.y = event.offsetY;
+
+        if (isDown) {
+            shift.start = current;
+            shift.end = last;
+            // Drag threshold.
+            if (shift.size > 2) {
+                isDragging = true;
+            }
+        }
     }
 );
 
-/**
- * @example
- * Mouse.isDown
- */
 module.exports = {
-    get isDown () {
-        return isDown;
+    is: {
+        get down () {
+            return isDown;
+        },
+        get dragging () {
+            return isDragging;
+        }
+    },
+    get offset () {
+        return current;
+    },
+    on: {
+        down: function (cb) {
+            document.addEventListener(startEventName, cb);
+        },
+        up: function (cb) {
+            document.addEventListener(endEventName, cb);
+        },
+        move: function (cb) {
+            document.addEventListener(moveEventName, cb);
+        },
+        drag: function (cb) {
+            document.addEventListener(
+                moveEventName,
+                function (event) {
+                    if (isDragging) {
+                        cb(event);
+                    }
+                }
+            );
+        }
+    },
+    eventName: {
+        start: startEventName,
+        move: moveEventName,
+        end: endEventName
     }
 };
 
-},{"./game.js":13}],17:[function(require,module,exports){
+},{"./point.js":17,"./vector.js":24}],17:[function(require,module,exports){
 module.exports = function (x, y) {
     return {
         x: x || 0,
@@ -897,9 +967,7 @@ module.exports = function (opts) {
     });
 
     return BaseClass({
-        name: function () {
-            return opts.name;
-        },
+        name: opts.name,
         start: function () {
             sprites.forEach(function (sprite) {
                 sprite.strip.start();
@@ -948,11 +1016,14 @@ module.exports = function (opts) {
             spriteRemoved = true;
         },
         update: function () {
-            var i,
-                doSort = false,
-                spritesLoading = [];
+            var i;
 
             if (updating) {
+                // Process collisions.
+                for (i in collisionMap) {
+                    collisionMap[i].handleCollisions();
+                }
+
                 // Update sprites.
                 sprites.forEach(function (sprite) {
                     if (updating && !sprite.removed) {
@@ -960,10 +1031,29 @@ module.exports = function (opts) {
                         sprite.update();
                     }
                 });
+            }
+        },
+        draw: function (ctx, debug) {
+            var name;
+            if (drawing) {
+                sprites.forEach(function (sprite) {
+                    sprite.draw(ctx);
+                });
+                if (debug) {
+                    for (name in collisionMap) {
+                        collisionMap[name].draw(ctx);
+                    }
+                }
+            }
+        },
+        teardown: function () {
+            var i,
+                doSort = false,
+                spritesLoading = [];
 
-                // Update collisions.
+            if (updating) {
                 for (i in collisionMap) {
-                    collisionMap[i].handleCollisions();
+                    collisionMap[i].teardown();
                 }
             }
 
@@ -998,19 +1088,6 @@ module.exports = function (opts) {
                     return !sprite.removed;
                 });
                 spriteRemoved = false;
-            }
-        },
-        draw: function (ctx, debug) {
-            var name;
-            if (drawing) {
-                sprites.forEach(function (sprite) {
-                    sprite.draw(ctx);
-                });
-                if (debug) {
-                    for (name in collisionMap) {
-                        collisionMap[name].draw(ctx);
-                    }
-                }
             }
         }
     }).implement(
@@ -1077,7 +1154,6 @@ module.exports = function (opts) {
         update: function () {
             // Update position if moving.
             this.shift();
-
             this.base.update();
             // Advance the animation.
             opts.strip.update();
@@ -1142,33 +1218,37 @@ module.exports = function (opts) {
 };
 
 },{}],24:[function(require,module,exports){
-var Point = require('./point.js'),
-    Dimension = require('./dimension.js');
+var Point = require('./point.js');
 
 /**
- * @param {Dimension|Point} opts.size|opts.end Either size
- * of vector or the ending point.
  * @param {Point} [opts.start] Defaults to (0,0).
+ * @param {Dimension|Point} [opts.size|opts.end] Defaults
+ * to (0,0). Either size of vector or the ending point.
  */
 module.exports = function (opts) {
-    var start = opts.start || Point(),
-        end = opts.end || Point(
-            start.x + opts.size.width,
-            start.y + opts.size.height
-        );
+    var start, end;
+
+    opts = opts || {};
+    start = opts.start || Point();
+    end = opts.end || Point();
+
+    if (opts.size) {
+        end.x = start.x + opts.size.width;
+        end.y = start.y + opts.size.height;
+    }
 
     return {
         start: start,
         end: end,
         get size () {
-            var rise = end.x - start.x,
-                run = end.y - start.y;
+            var rise = this.end.x - this.start.x,
+                run = this.end.y - this.start.y;
             return Math.sqrt((rise * rise) + (run * run));
         }
     };
 };
 
-},{"./dimension.js":10,"./point.js":17}],25:[function(require,module,exports){
+},{"./point.js":17}],25:[function(require,module,exports){
 var Dragon = require('dragonjs'),
     Dimension = Dragon.Dimension,
     CollisionHandler = Dragon.CollisionHandler,
@@ -1199,25 +1279,29 @@ Game.run({
 
 },{"./screens/main.js":27,"dragonjs":9}],27:[function(require,module,exports){
 var Dragon = require('dragonjs'),
-    Game = Dragon.Game,
     Screen = Dragon.Screen,
-    Sky = require('../sprites/sky.js'),
-    Runner = require('../sprites/runner.js'),
-    Ground = require('../sprites/ground.js'),
+    Mouse = Dragon.Mouse,
+    sky = require('../sprites/sky.js'),
+    runner = require('../sprites/runner.js'),
+    ground = require('../sprites/ground.js'),
     collisions = require('../collisions/main.js');
 
 module.exports = Screen({
     name: 'main',
     collisionSets: collisions,
     spriteSet: [
-        Sky,
-        Runner,
-        Ground
+        sky,
+        runner,
+        ground
     ],
-    on: {
-        ready: function () {
-            Game.screen('main').start();
+    one: {
+        ready: function (self) {
+            self.start();
         }
+    }
+}).extend({
+    update: function () {
+        this.base.update();
     }
 });
 

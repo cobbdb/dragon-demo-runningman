@@ -1,22 +1,26 @@
 var Dragon = require('dragonjs'),
-    Game = Dragon.Game,
     Screen = Dragon.Screen,
-    Sky = require('../sprites/sky.js'),
-    Runner = require('../sprites/runner.js'),
-    Ground = require('../sprites/ground.js'),
+    Mouse = Dragon.Mouse,
+    sky = require('../sprites/sky.js'),
+    runner = require('../sprites/runner.js'),
+    ground = require('../sprites/ground.js'),
     collisions = require('../collisions/main.js');
 
 module.exports = Screen({
     name: 'main',
     collisionSets: collisions,
     spriteSet: [
-        Sky,
-        Runner,
-        Ground
+        sky,
+        runner,
+        ground
     ],
-    on: {
-        ready: function () {
-            Game.screen('main').start();
+    one: {
+        ready: function (self) {
+            self.start();
         }
+    }
+}).extend({
+    update: function () {
+        this.base.update();
     }
 });
