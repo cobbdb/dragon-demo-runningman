@@ -179,7 +179,31 @@ module.exports = function (opts) {
     };
 };
 
-},{"./dimension.js":10,"./point.js":17}],6:[function(require,module,exports){
+},{"./dimension.js":11,"./point.js":18}],6:[function(require,module,exports){
+var canvas = document.createElement('canvas'),
+    ctx = canvas.getContext('2d'),
+    mobile = false;
+
+if (window.innerWidth >= 500) {
+    // Large screen devices.
+    canvas.width = 320;
+    canvas.height = 480;
+    canvas.style.border = '1px solid #000';
+} else {
+    // Mobile devices.
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    mobile = true;
+}
+document.body.appendChild(canvas);
+
+module.exports = {
+    isMobile: mobile,
+    canvas: canvas,
+    ctx: ctx
+};
+
+},{}],7:[function(require,module,exports){
 var Shape = require('./shape.js'),
     Vector = require('./vector.js'),
     Point = require('./point.js'),
@@ -228,7 +252,7 @@ module.exports = function (pos, rad) {
     return self;
 };
 
-},{"./dimension.js":10,"./point.js":17,"./shape.js":21,"./vector.js":24}],7:[function(require,module,exports){
+},{"./dimension.js":11,"./point.js":18,"./shape.js":22,"./vector.js":25}],8:[function(require,module,exports){
 var counter = require('./id-counter.js'),
     EventHandler = require('./event-handler.js'),
     BaseClass = require('baseclassjs'),
@@ -291,7 +315,7 @@ module.exports = function (opts) {
     );
 };
 
-},{"./event-handler.js":11,"./id-counter.js":14,"./rectangle.js":19,"baseclassjs":2}],8:[function(require,module,exports){
+},{"./event-handler.js":12,"./id-counter.js":15,"./rectangle.js":20,"baseclassjs":2}],9:[function(require,module,exports){
 var Rectangle = require('./rectangle.js'),
     Point = require('./point.js'),
     Dimension = require('./dimension.js');
@@ -351,6 +375,7 @@ module.exports = function (opts) {
             var i, len = activeCollisions.length;
             for (i = 0; i < len; i += 1) {
                 if (collidable.intersects(collisionGrid[i])) {
+                    // VV This isn't happening right.
                     activeCollisions[i].push(collidable);
                 }
             }
@@ -398,7 +423,7 @@ module.exports = function (opts) {
     };
 };
 
-},{"./dimension.js":10,"./point.js":17,"./rectangle.js":19}],9:[function(require,module,exports){
+},{"./dimension.js":11,"./point.js":18,"./rectangle.js":20}],10:[function(require,module,exports){
 module.exports = {
     Shape: require('./shape.js'),
     Circle: require('./circle.js'),
@@ -425,7 +450,7 @@ module.exports = {
     Sprite: require('./sprite.js')
 };
 
-},{"./animation-strip.js":5,"./circle.js":6,"./collidable.js":7,"./collision-handler.js":8,"./dimension.js":10,"./event-handler.js":11,"./frame-counter.js":12,"./game.js":13,"./id-counter.js":14,"./keyboard.js":15,"./mouse.js":16,"./point.js":17,"./polar.js":18,"./rectangle.js":19,"./screen.js":20,"./shape.js":21,"./sprite.js":22,"./spritesheet.js":23,"./vector.js":24}],10:[function(require,module,exports){
+},{"./animation-strip.js":5,"./circle.js":7,"./collidable.js":8,"./collision-handler.js":9,"./dimension.js":11,"./event-handler.js":12,"./frame-counter.js":13,"./game.js":14,"./id-counter.js":15,"./keyboard.js":16,"./mouse.js":17,"./point.js":18,"./polar.js":19,"./rectangle.js":20,"./screen.js":21,"./shape.js":22,"./sprite.js":23,"./spritesheet.js":24,"./vector.js":25}],11:[function(require,module,exports){
 module.exports = function (w, h) {
     return {
         width: w || 0,
@@ -433,7 +458,7 @@ module.exports = function (w, h) {
     };
 };
 
-},{}],11:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 var BaseClass = require('baseclassjs');
 
 /**
@@ -484,7 +509,7 @@ module.exports = function (opts) {
     });
 };
 
-},{"baseclassjs":2}],12:[function(require,module,exports){
+},{"baseclassjs":2}],13:[function(require,module,exports){
 var timeSinceLastSecond = frameCountThisSecond = frameRate = 0,
     timeLastFrame = new Date().getTime();
 
@@ -513,50 +538,42 @@ module.exports = {
     }
 };
 
-},{}],13:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 var CollisionHandler = require('./collision-handler.js'),
     Point = require('./point.js'),
     Dimension = require('./dimension.js'),
     Circle = require('./circle.js'),
     Collidable = require('./collidable.js'),
     FrameCounter = require('./frame-counter.js'),
-    Mouse = require('./mouse.js');
+    Mouse = require('./mouse.js'),
+    canvas = require('./canvas.js').canvas,
+    ctx = require('./canvas.js').ctx;
 
-var ctx,
-    debug = false,
-    tapCollisionSet,
+var debug = false,
     heartbeat = false,
     throttle = 50,
-    canvas = document.createElement('canvas'),
     screens = [],
     screenMap = {},
     screensToAdd = [],
-    screenRemoved = false;
+    screenRemoved = false,
+    tapCollisionSet = CollisionHandler({
+        name: 'screentap',
+        gridSize: Dimension(4, 4),
+        canvasSize: canvas
+    });
 
-if (window.innerWidth >= 500) {
-    // Large screen devices.
-    canvas.width = 320;
-    canvas.height = 480;
-    canvas.style.border = '1px solid #000';
-} else {
-    // Mobile devices.
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-}
-
-tapCollisionSet = CollisionHandler({
-    name: 'screentap',
-    gridSize: Dimension(4, 4),
-    canvasSize: canvas
-});
-ctx = canvas.getContext('2d');
 Mouse.on.down(function () {
     tapCollisionSet.update(Collidable({
         name: 'screentap',
         mask: Circle(Mouse.offset, 10)
     }));
 });
-document.body.appendChild(canvas);
+Mouse.on.drag(function () {
+    tapCollisionSet.update(Collidable({
+        name: 'screendrag',
+        mask: Circle(Mouse.offset, 10)
+    }));
+});
 
 /**
  * @param screenSet Array
@@ -616,10 +633,10 @@ module.exports = {
         });
     },
     update: function () {
-        if (Mouse.is.down) {
+        if (Mouse.is.holding && !Mouse.is.dragging) {
             tapCollisionSet.update(Collidable({
-                name: 'screentap',
-                mask: Circle(Mouse.offset, 12)
+                name: 'screenhold',
+                mask: Circle(Mouse.offset, 15)
             }));
         }
 
@@ -674,7 +691,7 @@ module.exports = {
     }
 };
 
-},{"./circle.js":6,"./collidable.js":7,"./collision-handler.js":8,"./dimension.js":10,"./frame-counter.js":12,"./mouse.js":16,"./point.js":17}],14:[function(require,module,exports){
+},{"./canvas.js":6,"./circle.js":7,"./collidable.js":8,"./collision-handler.js":9,"./dimension.js":11,"./frame-counter.js":13,"./mouse.js":17,"./point.js":18}],15:[function(require,module,exports){
 var counter = 0;
 
 module.exports = {
@@ -687,7 +704,7 @@ module.exports = {
     }
 };
 
-},{}],15:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 var nameMap = {
         alt: false,
         ctrl: false,
@@ -742,11 +759,15 @@ module.exports = {
     }
 };
 
-},{}],16:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
+(function (global){
 var Point = require('./point.js'),
     Vector = require('./vector.js'),
+    canvas = require('./canvas.js').canvas,
+    isMobile = require('./canvas.js').isMobile,
     isDown = false,
     isDragging = false,
+    isHolding = false,
     current = Point(),
     last = Point(),
     shift = Vector(),
@@ -754,31 +775,36 @@ var Point = require('./point.js'),
     moveEventName,
     endEventName;
 
-if (window.innerWidth >= 500) {
-    startEventName = 'mousedown';
-    moveEventName = 'mousemove';
-    endEventName = 'mouseup';
-} else {
+if (isMobile) {
     startEventName = 'touchstart';
     moveEventName = 'touchmove';
     endEventName = 'touchend';
+} else {
+    startEventName = 'mousedown';
+    moveEventName = 'mousemove';
+    endEventName = 'mouseup';
 }
 
-document.addEventListener(
+canvas.addEventListener(
     startEventName,
     function (event) {
         isDown = true;
         current.x = event.offsetX;
         current.y = event.offsetY;
+        global.setTimeout(function () {
+            if (isDown) {
+                isHolding = true;
+            }
+        }, 200);
     }
 );
 document.addEventListener(
     endEventName,
     function (event) {
-        isDown = isDragging = false;
+        isDown = isDragging = isHolding = false;
     }
 );
-document.addEventListener(
+canvas.addEventListener(
     moveEventName,
     function (event) {
         last.x = current.x;
@@ -804,6 +830,9 @@ module.exports = {
         },
         get dragging () {
             return isDragging;
+        },
+        get holding () {
+            return isHolding;
         }
     },
     get offset () {
@@ -811,16 +840,16 @@ module.exports = {
     },
     on: {
         down: function (cb) {
-            document.addEventListener(startEventName, cb);
+            canvas.addEventListener(startEventName, cb);
         },
         up: function (cb) {
             document.addEventListener(endEventName, cb);
         },
         move: function (cb) {
-            document.addEventListener(moveEventName, cb);
+            canvas.addEventListener(moveEventName, cb);
         },
         drag: function (cb) {
-            document.addEventListener(
+            canvas.addEventListener(
                 moveEventName,
                 function (event) {
                     if (isDragging) {
@@ -837,15 +866,27 @@ module.exports = {
     }
 };
 
-},{"./point.js":17,"./vector.js":24}],17:[function(require,module,exports){
-module.exports = function (x, y) {
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"./canvas.js":6,"./point.js":18,"./vector.js":25}],18:[function(require,module,exports){
+function Point(x, y) {
     return {
         x: x || 0,
-        y: y || 0
+        y: y || 0,
+        clone: function () {
+            return Point(this.x, this.y);
+        },
+        equals: function (other) {
+            return (
+                this.x === other.x &&
+                this.y === other.y
+            );
+        }
     };
 };
 
-},{}],18:[function(require,module,exports){
+module.exports = Point;
+
+},{}],19:[function(require,module,exports){
 var Vector = require('./vector.js'),
     BaseClass = require('baseclassjs');
 
@@ -868,7 +909,7 @@ module.exports = function (theta, mag) {
     });
 };
 
-},{"./vector.js":24,"baseclassjs":2}],19:[function(require,module,exports){
+},{"./vector.js":25,"baseclassjs":2}],20:[function(require,module,exports){
 var Shape = require('./shape.js'),
     Point = require('./point.js'),
     Dimension = require('./dimension.js'),
@@ -903,12 +944,13 @@ module.exports = function (pos, size) {
             ctx.stroke();
         }
     });
-    self.intersects.rect = function (other) {
+    self.intersects.rect = function (rect) {
+        // --> Double-check this algorithm
         return (
-            this.x < other.right &&
-            this.right > other.x &&
-            this.y < other.bottom &&
-            this.bottom > other.y
+            this.x < rect.right &&
+            this.right > rect.x &&
+            this.y < rect.bottom &&
+            this.bottom > rect.y
         );
     };
     self.intersects.circle = function (circ) {
@@ -929,7 +971,7 @@ module.exports = function (pos, size) {
     return self;
 };
 
-},{"./dimension.js":10,"./point.js":17,"./shape.js":21,"./vector.js":24}],20:[function(require,module,exports){
+},{"./dimension.js":11,"./point.js":18,"./shape.js":22,"./vector.js":25}],21:[function(require,module,exports){
 var BaseClass = require('baseclassjs'),
     EventHandler = require('./event-handler.js');
 
@@ -1098,7 +1140,7 @@ module.exports = function (opts) {
     );
 };
 
-},{"./event-handler.js":11,"baseclassjs":2}],21:[function(require,module,exports){
+},{"./event-handler.js":12,"baseclassjs":2}],22:[function(require,module,exports){
 var BaseClass = require('baseclassjs');
 
 module.exports = function (x, y) {
@@ -1106,15 +1148,15 @@ module.exports = function (x, y) {
         x: x || 0,
         y: y || 0,
         move: function (x, y) {
-            this.x = x;
-            this.y = y;
+            this.leaf.x = x;
+            this.leaf.y = y;
         },
         intersects: BaseClass.Stub,
         draw: BaseClass.Stub
     });
 };
 
-},{"baseclassjs":2}],22:[function(require,module,exports){
+},{"baseclassjs":2}],23:[function(require,module,exports){
 var Collidable = require('./collidable.js'),
     Point = require('./point.js'),
     Dimension = require('./dimension.js');
@@ -1182,7 +1224,7 @@ module.exports = function (opts) {
     });
 };
 
-},{"./collidable.js":7,"./dimension.js":10,"./point.js":17}],23:[function(require,module,exports){
+},{"./collidable.js":8,"./dimension.js":11,"./point.js":18}],24:[function(require,module,exports){
 var cache = {};
 
 /**
@@ -1217,7 +1259,7 @@ module.exports = function (opts) {
     return img;
 };
 
-},{}],24:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 var Point = require('./point.js');
 
 /**
@@ -1248,7 +1290,7 @@ module.exports = function (opts) {
     };
 };
 
-},{"./point.js":17}],25:[function(require,module,exports){
+},{"./point.js":18}],26:[function(require,module,exports){
 var Dragon = require('dragonjs'),
     Dimension = Dragon.Dimension,
     CollisionHandler = Dragon.CollisionHandler,
@@ -1260,7 +1302,7 @@ module.exports = CollisionHandler({
     canvasSize: Game.canvas
 });
 
-},{"dragonjs":9}],26:[function(require,module,exports){
+},{"dragonjs":10}],27:[function(require,module,exports){
 var Dragon = require('dragonjs'),
     Game = Dragon.Game,
     mainScreen = require('./screens/main.js');
@@ -1277,7 +1319,7 @@ Game.run({
     debug: true
 });
 
-},{"./screens/main.js":27,"dragonjs":9}],27:[function(require,module,exports){
+},{"./screens/main.js":28,"dragonjs":10}],28:[function(require,module,exports){
 var Dragon = require('dragonjs'),
     Screen = Dragon.Screen,
     Mouse = Dragon.Mouse,
@@ -1305,7 +1347,7 @@ module.exports = Screen({
     }
 });
 
-},{"../collisions/main.js":25,"../sprites/ground.js":28,"../sprites/runner.js":29,"../sprites/sky.js":30,"dragonjs":9}],28:[function(require,module,exports){
+},{"../collisions/main.js":26,"../sprites/ground.js":29,"../sprites/runner.js":30,"../sprites/sky.js":31,"dragonjs":10}],29:[function(require,module,exports){
 var Dragon = require('dragonjs'),
     canvas = Dragon.Game.canvas,
     Point = Dragon.Point,
@@ -1332,7 +1374,7 @@ module.exports = Sprite({
     pos: Point(0, canvas.height - 79)
 });
 
-},{"../collisions/main.js":25,"dragonjs":9}],29:[function(require,module,exports){
+},{"../collisions/main.js":26,"dragonjs":10}],30:[function(require,module,exports){
 var Dragon = require('dragonjs'),
     Game = Dragon.Game,
     KeyDown = Dragon.Keyboard,
@@ -1405,7 +1447,7 @@ module.exports = Sprite({
     }
 });
 
-},{"../collisions/main.js":25,"dragonjs":9}],30:[function(require,module,exports){
+},{"../collisions/main.js":26,"dragonjs":10}],31:[function(require,module,exports){
 var Dragon = require('dragonjs'),
     Game = Dragon.Game,
     Point = Dragon.Point,
@@ -1427,4 +1469,4 @@ module.exports = Sprite({
     size: Game.canvas
 });
 
-},{"dragonjs":9}]},{},[26]);
+},{"dragonjs":10}]},{},[27]);
