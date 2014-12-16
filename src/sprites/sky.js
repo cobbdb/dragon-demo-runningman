@@ -4,7 +4,8 @@ var Dragon = require('dragonjs'),
     Dimension = Dragon.Dimension,
     Sprite = Dragon.Sprite,
     AnimationStrip = Dragon.AnimationStrip,
-    SpriteSheet = Dragon.SpriteSheet;
+    SpriteSheet = Dragon.SpriteSheet,
+    collisions = require('../collisions/main.js');
 
 module.exports = Sprite({
     name: 'sky',

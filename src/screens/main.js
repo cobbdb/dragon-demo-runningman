@@ -20,7 +20,7 @@ module.exports = Screen({
         }
     }
 }).extend({
-    update: function () {
-        this.base.update();
+    update: function (base) {
+        base.update();
     }
 });

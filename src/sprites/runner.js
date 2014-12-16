@@ -1,6 +1,7 @@
 var Dragon = require('dragonjs'),
     Game = Dragon.Game,
     KeyDown = Dragon.Keyboard,
+    Mouse = Dragon.Mouse,
     Point = Dragon.Point,
     Dimension = Dragon.Dimension,
     Rect = Dragon.Rectangle,
@@ -32,15 +33,26 @@ module.exports = Sprite({
     size: Dimension(66, 115),
     rotation: 0.4,
     on: {
-        'collide/ground': function () {
+        'colliding/ground': function () {
             console.log('Runner: Colliding with ground!');
+        },
+        'collide/ground': function () {
+            console.log('Runner: Collided with ground!');
         },
         'collide/screentap': function () {
             console.log('Runner: Clicked!');
+        },
+        'collide/screendrag': function () {
+            var pos = Mouse.offset.clone();
+            pos.x -= this.size.width / 2;
+            pos.y -= this.size.height / 2;
+            this.move(pos.x, pos.y);
+
+            console.log('Runner: Being dragged!');
         }
     }
 }).extend({
-    update: function () {
+    update: function (base) {
         if (KeyDown.name(' ')) {
             this.rotation += 0.3;
             this.rotation %= 2 * Math.PI;
@@ -66,6 +78,6 @@ module.exports = Sprite({
             this.speed.y = 0;
         }
 
-        this.base.update();
+        base.update();
     }
 });
