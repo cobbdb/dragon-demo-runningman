@@ -33,51 +33,46 @@ module.exports = Sprite({
     size: Dimension(66, 115),
     rotation: 0.4,
     on: {
-        'colliding/ground': function () {
-            console.log('Runner: Colliding with ground!');
-        },
         'collide/ground': function () {
             console.log('Runner: Collided with ground!');
         },
         'collide/screentap': function () {
-            console.log('Runner: Clicked!');
+            console.log('Runner: Tapped!');
+        },
+        'collide/screenhold': function () {
+            console.log('Runner: Squished!');
         },
         'collide/screendrag': function () {
             var pos = Mouse.offset.clone();
             pos.x -= this.size.width / 2;
             pos.y -= this.size.height / 2;
             this.move(pos.x, pos.y);
-
-            console.log('Runner: Being dragged!');
         }
     }
 }).extend({
-    update: function (base) {
+    update: function () {
         if (KeyDown.name(' ')) {
             this.rotation += 0.3;
             this.rotation %= 2 * Math.PI;
         }
 
-        if (KeyDown.code(37)) {
-            // Left arrow.
+        if (KeyDown.arrow.left) {
             this.speed.x = -10;
-        } else if (KeyDown.code(39)) {
+        } else if (KeyDown.arrow.right) {
             // Right arrow.
             this.speed.x = 10;
         } else {
             this.speed.x = 0;
         }
 
-        if (KeyDown.code(38)) {
-            // Up arrow.
+        if (KeyDown.arrow.up) {
             this.speed.y = -10;
-        } else if (KeyDown.code(40)) {
-            // Down arrow.
+        } else if (KeyDown.arrow.down) {
             this.speed.y = 10;
         } else {
             this.speed.y = 0;
         }
 
-        base.update();
+        this.base.update();
     }
 });

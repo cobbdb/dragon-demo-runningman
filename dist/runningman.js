@@ -61,12 +61,17 @@ module.exports = function (child) {
 },{}],4:[function(require,module,exports){
 module.exports = function (key, root, base, self) {
     return function () {
-        // `base` is a collection of methods only.
-        [].push.call(arguments, base);
-        // `this` is manipulated, so provide a way
-        // for children to access themselves.
-        [].push.call(arguments, self);
-        return self[key].apply(root, arguments);
+        var out,
+            oldbase = root.base;
+
+        // Rebind base and self for this specific method.
+        root.base = base;
+        root.self = self;
+        out = self[key].apply(root, arguments);
+
+        // Restore the original base object.
+        root.base = oldbase;
+        return out;
     };
 };
 
@@ -201,6 +206,7 @@ if (window.innerWidth >= 500) {
     // Mobile devices.
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
+    document.body.style.height = canvas.height + 'px';
     mobile = true;
 }
 document.body.appendChild(canvas);
@@ -664,7 +670,7 @@ module.exports = {
                 if (screen.name) {
                     screenMap[screen.name] = screen;
                 }
-                screen.trigger('ready', screen);
+                screen.trigger('ready');
             });
             // Sort by descending sprite depths.
             screens.sort(function (a, b) {
@@ -688,7 +694,7 @@ module.exports = {
         if (debug) {
             FrameCounter.draw(ctx);
             if (Mouse.is.down) {
-                tapCollisionSet.draw(ctx);
+                //tapCollisionSet.draw(ctx);
             }
         }
     },
@@ -759,6 +765,20 @@ module.exports = {
     },
     get shift () {
         return nameMap.shift;
+    },
+    arrow: {
+        get left () {
+            return codeMap[37] || false;
+        },
+        get up () {
+            return codeMap[38] || false;
+        },
+        get right () {
+            return codeMap[39] || false;
+        },
+        get down () {
+            return codeMap[40] || false;
+        }
     },
     name: function (name) {
         return nameMap[name] || false;
@@ -965,8 +985,8 @@ module.exports = function (pos, size) {
         height: size.height || 0,
         right: pos.x + size.width || 0,
         bottom: pos.y + size.height || 0,
-        move: function (x, y, base) {
-            base.move(x, y);
+        move: function (x, y) {
+            this.base.move(x, y);
             this.right = x + this.width;
             this.bottom = y + this.height;
         },
@@ -1215,10 +1235,10 @@ module.exports = function (opts) {
         rotation: opts.rotation || 0,
         depth: opts.depth || 0,
         speed: opts.speed || Point(),
-        update: function (base) {
+        update: function () {
             // Update position if moving.
             this.shift();
-            base.update();
+            this.base.update();
             // Advance the animation.
             opts.strip.update();
         },
@@ -1233,15 +1253,15 @@ module.exports = function (opts) {
                 this.rotation
             );
         },
-        move: function (x, y, base) {
+        move: function (x, y) {
             this.pos.x = x;
             this.pos.y = y;
-            base.move(x, y);
+            this.base.move(x, y);
         },
-        shift: function (base) {
-            this.pos.x += this.speed.x;
-            this.pos.y += this.speed.y;
-            base.move(this.pos.x, this.pos.y);
+        shift: function (vx, vy) {
+            this.pos.x += vx || this.speed.x;
+            this.pos.y += vy || this.speed.y;
+            this.base.move(this.pos.x, this.pos.y);
         }
     });
 };
@@ -1359,13 +1379,13 @@ module.exports = Screen({
         ground
     ],
     one: {
-        ready: function (self) {
-            self.start();
+        ready: function () {
+            this.start();
         }
     }
 }).extend({
-    update: function (base) {
-        base.update();
+    update: function () {
+        this.base.update();
     }
 });
 
@@ -1432,52 +1452,47 @@ module.exports = Sprite({
     size: Dimension(66, 115),
     rotation: 0.4,
     on: {
-        'colliding/ground': function () {
-            console.log('Runner: Colliding with ground!');
-        },
         'collide/ground': function () {
             console.log('Runner: Collided with ground!');
         },
         'collide/screentap': function () {
-            console.log('Runner: Clicked!');
+            console.log('Runner: Tapped!');
+        },
+        'collide/screenhold': function () {
+            console.log('Runner: Squished!');
         },
         'collide/screendrag': function () {
             var pos = Mouse.offset.clone();
             pos.x -= this.size.width / 2;
             pos.y -= this.size.height / 2;
             this.move(pos.x, pos.y);
-
-            console.log('Runner: Being dragged!');
         }
     }
 }).extend({
-    update: function (base) {
+    update: function () {
         if (KeyDown.name(' ')) {
             this.rotation += 0.3;
             this.rotation %= 2 * Math.PI;
         }
 
-        if (KeyDown.code(37)) {
-            // Left arrow.
+        if (KeyDown.arrow.left) {
             this.speed.x = -10;
-        } else if (KeyDown.code(39)) {
+        } else if (KeyDown.arrow.right) {
             // Right arrow.
             this.speed.x = 10;
         } else {
             this.speed.x = 0;
         }
 
-        if (KeyDown.code(38)) {
-            // Up arrow.
+        if (KeyDown.arrow.up) {
             this.speed.y = -10;
-        } else if (KeyDown.code(40)) {
-            // Down arrow.
+        } else if (KeyDown.arrow.down) {
             this.speed.y = 10;
         } else {
             this.speed.y = 0;
         }
 
-        base.update();
+        this.base.update();
     }
 });
 

@@ -15,12 +15,12 @@ module.exports = Screen({
         ground
     ],
     one: {
-        ready: function (self) {
-            self.start();
+        ready: function () {
+            this.start();
         }
     }
 }).extend({
-    update: function (base) {
-        base.update();
+    update: function () {
+        this.base.update();
     }
 });
