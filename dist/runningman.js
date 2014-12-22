@@ -1472,7 +1472,8 @@ module.exports = Sprite({
         }),
         size: Dimension(81, 79)
     }),
-    pos: Point(0, canvas.height - 79)
+    pos: Point(0, canvas.height - 79),
+    depth: 8
 });
 
 },{"../collisions/main.js":28,"dragonjs":11}],32:[function(require,module,exports){
@@ -1510,6 +1511,7 @@ module.exports = Sprite({
     pos: Point(100, 100),
     size: Dimension(66, 115),
     rotation: 0.4,
+    depth: 2,
     on: {
         'collide/ground': function () {
             console.log('Runner: Collided with ground!');
@@ -1575,7 +1577,8 @@ module.exports = Sprite({
         size: Dimension(5, 400),
         frames: 1
     }),
-    size: Game.canvas
+    size: Game.canvas,
+    depth: 10
 });
 
 },{"../collisions/main.js":28,"dragonjs":11}]},{},[29]);

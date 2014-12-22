@@ -32,6 +32,7 @@ module.exports = Sprite({
     pos: Point(100, 100),
     size: Dimension(66, 115),
     rotation: 0.4,
+    depth: 2,
     on: {
         'collide/ground': function () {
             console.log('Runner: Collided with ground!');

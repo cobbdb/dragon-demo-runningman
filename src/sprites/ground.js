@@ -21,5 +21,6 @@ module.exports = Sprite({
         }),
         size: Dimension(81, 79)
     }),
-    pos: Point(0, canvas.height - 79)
+    pos: Point(0, canvas.height - 79),
+    depth: 8
 });

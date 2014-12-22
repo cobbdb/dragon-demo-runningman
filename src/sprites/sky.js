@@ -17,5 +17,6 @@ module.exports = Sprite({
         size: Dimension(5, 400),
         frames: 1
     }),
-    size: Game.canvas
+    size: Game.canvas,
+    depth: 10
 });
