@@ -1,6 +1,6 @@
 var Dragon = require('dragonjs'),
     Screen = Dragon.Screen,
-    Mouse = Dragon.Mouse,
+    Game = Dragon.Game,
     sky = require('../sprites/sky.js'),
     runner = require('../sprites/runner.js'),
     ground = require('../sprites/ground.js'),
@@ -18,9 +18,5 @@ module.exports = Screen({
         ready: function () {
             this.start();
         }
-    }
-}).extend({
-    update: function () {
-        this.base.update();
     }
 });

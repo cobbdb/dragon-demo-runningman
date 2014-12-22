@@ -114,6 +114,9 @@ module.exports = function (opts) {
         },
         size: size,
         frame: 0,
+        load: function (cb) {
+            opts.sheet.load(cb);
+        },
         start: function () {
             timeLastFrame = new Date().getTime();
             updating = true;
@@ -193,29 +196,26 @@ module.exports = function (opts) {
     };
 };
 
-},{"./dimension.js":12,"./point.js":19}],7:[function(require,module,exports){
-var canvas = document.createElement('canvas'),
-    mobile = false;
+},{"./dimension.js":12,"./point.js":20}],7:[function(require,module,exports){
+var canvas = document.createElement('canvas');
 
 if (window.innerWidth >= 500) {
     // Large screen devices.
     canvas.width = 320;
     canvas.height = 480;
     canvas.style.border = '1px solid #000';
+    canvas.mobile = false;
 } else {
     // Mobile devices.
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
     document.body.style.height = canvas.height + 'px';
-    mobile = true;
+    canvas.mobile = true;
 }
 document.body.appendChild(canvas);
 
-module.exports = {
-    isMobile: mobile,
-    canvas: canvas,
-    ctx: canvas.getContext('2d')
-};
+canvas.ctx = canvas.getContext('2d');
+module.exports = canvas;
 
 },{}],8:[function(require,module,exports){
 var Shape = require('./shape.js'),
@@ -270,8 +270,8 @@ module.exports = function (pos, rad) {
     });
 };
 
-},{"./dimension.js":12,"./point.js":19,"./shape.js":23,"./vector.js":26}],9:[function(require,module,exports){
-var counter = require('./id-counter.js'),
+},{"./dimension.js":12,"./point.js":20,"./shape.js":24,"./vector.js":27}],9:[function(require,module,exports){
+var Counter = require('./id-counter.js'),
     EventHandler = require('./event-handler.js'),
     BaseClass = require('baseclassjs'),
     Rectangle = require('./rectangle.js');
@@ -284,7 +284,7 @@ var counter = require('./id-counter.js'),
  * @param {Object} [opts.one] Dictionary of one-time events.
  */
 module.exports = function (opts) {
-    var instanceId = counter.nextId,
+    var instanceId = Counter.nextId,
         activeCollisions = {},
         collisionSets = [];
 
@@ -327,7 +327,7 @@ module.exports = function (opts) {
     );
 };
 
-},{"./event-handler.js":13,"./id-counter.js":16,"./rectangle.js":21,"baseclassjs":2}],10:[function(require,module,exports){
+},{"./event-handler.js":13,"./id-counter.js":16,"./rectangle.js":22,"baseclassjs":2}],10:[function(require,module,exports){
 var Rectangle = require('./rectangle.js'),
     Point = require('./point.js'),
     Dimension = require('./dimension.js');
@@ -435,7 +435,7 @@ module.exports = function (opts) {
     };
 };
 
-},{"./dimension.js":12,"./point.js":19,"./rectangle.js":21}],11:[function(require,module,exports){
+},{"./dimension.js":12,"./point.js":20,"./rectangle.js":22}],11:[function(require,module,exports){
 module.exports = {
     Shape: require('./shape.js'),
     Circle: require('./circle.js'),
@@ -462,7 +462,7 @@ module.exports = {
     Sprite: require('./sprite.js')
 };
 
-},{"./animation-strip.js":6,"./circle.js":8,"./collidable.js":9,"./collision-handler.js":10,"./dimension.js":12,"./event-handler.js":13,"./frame-counter.js":14,"./game.js":15,"./id-counter.js":16,"./keyboard.js":17,"./mouse.js":18,"./point.js":19,"./polar.js":20,"./rectangle.js":21,"./screen.js":22,"./shape.js":23,"./sprite.js":24,"./spritesheet.js":25,"./vector.js":26}],12:[function(require,module,exports){
+},{"./animation-strip.js":6,"./circle.js":8,"./collidable.js":9,"./collision-handler.js":10,"./dimension.js":12,"./event-handler.js":13,"./frame-counter.js":14,"./game.js":15,"./id-counter.js":16,"./keyboard.js":18,"./mouse.js":19,"./point.js":20,"./polar.js":21,"./rectangle.js":22,"./screen.js":23,"./shape.js":24,"./sprite.js":25,"./spritesheet.js":26,"./vector.js":27}],12:[function(require,module,exports){
 module.exports = function (w, h) {
     return {
         width: w || 0,
@@ -561,8 +561,9 @@ var CollisionHandler = require('./collision-handler.js'),
     Collidable = require('./collidable.js'),
     FrameCounter = require('./frame-counter.js'),
     Mouse = require('./mouse.js'),
-    canvas = require('./canvas.js').canvas,
-    ctx = require('./canvas.js').ctx;
+    canvas = require('./canvas.js'),
+    ctx = canvas.ctx,
+    Counter = require('./id-counter.js');
 
 var debug = false,
     heartbeat = false,
@@ -575,7 +576,8 @@ var debug = false,
         name: 'screentap',
         gridSize: Dimension(4, 4),
         canvasSize: canvas
-    });
+    }),
+    loadQueue = {};
 
 Mouse.on.down(function () {
     tapCollisionSet.update(Collidable({
@@ -590,27 +592,35 @@ Mouse.on.drag(function () {
     }));
 });
 
-/**
- * @param screenSet Array
- */
 module.exports = {
     canvas: canvas,
-    ctx: ctx,
     screenTap: tapCollisionSet,
     screen: function (name) {
         return screenMap[name];
     },
     /**
-     * @param {Array|Screen} opts.set
-     * @param {Function} [opts.onload]
+     * Loads screen into the game together
+     * as a batch. None of the batch will be
+     * loaded into the game until all screens
+     * are ready.
+     * @param {Array|Screen} set
      */
-    addScreens: function (opts) {
-        var onload = opts.onload || function () {};
-        screensToAdd = screensToAdd.concat(opts.set);
-        /**
-         * onload should be some behaviors after all
-         * screens have finished loading.
-         */
+    addScreens: function (set) {
+        var id;
+        if (set) {
+            set = [].concat(set);
+            id = Counter.nextId;
+
+            loadQueue[id] = set.length;
+            set.forEach(function (screen) {
+                screen.load(function () {
+                    loadQueue[id] -= 1;
+                    if (loadQueue[id] === 0) {
+                        screensToAdd = screensToAdd.concat(set);
+                    }
+                });
+            });
+        }
     },
     removeScreen: function (screen) {
         screen.removed = true;
@@ -706,7 +716,7 @@ module.exports = {
     }
 };
 
-},{"./canvas.js":7,"./circle.js":8,"./collidable.js":9,"./collision-handler.js":10,"./dimension.js":12,"./frame-counter.js":14,"./mouse.js":18,"./point.js":19}],16:[function(require,module,exports){
+},{"./canvas.js":7,"./circle.js":8,"./collidable.js":9,"./collision-handler.js":10,"./dimension.js":12,"./frame-counter.js":14,"./id-counter.js":16,"./mouse.js":19,"./point.js":20}],16:[function(require,module,exports){
 var counter = 0;
 
 module.exports = {
@@ -720,6 +730,41 @@ module.exports = {
 };
 
 },{}],17:[function(require,module,exports){
+module.exports = function (src) {
+    var img = new Image();
+    img.ready = false;
+    img.cmd = [];
+
+    img.processLoadEvents = function () {
+        this.cmd.forEach(function (cb) {
+            cb(img);
+        });
+        this.cmd = [];
+    };
+
+    img.onload = function () {
+        this.ready = true;
+        this.processLoadEvents();
+    };
+
+    /**
+     * @param {Function} [cb] Defaults to noop. Callback
+     * for onload event.
+     */
+    img.load = function (cb) {
+        cb = cb || function () {};
+        if (this.ready) {
+            cb(img);
+        } else {
+            this.cmd.push(cb);
+            this.src = 'assets/img/' + src;
+        }
+    };
+
+    return img;
+};
+
+},{}],18:[function(require,module,exports){
 var nameMap = {
         alt: false,
         ctrl: false,
@@ -788,12 +833,11 @@ module.exports = {
     }
 };
 
-},{}],18:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 (function (global){
 var Point = require('./point.js'),
     Vector = require('./vector.js'),
-    canvas = require('./canvas.js').canvas,
-    isMobile = require('./canvas.js').isMobile,
+    canvas = require('./canvas.js'),
     isDown = false,
     isDragging = false,
     isHolding = false,
@@ -804,7 +848,7 @@ var Point = require('./point.js'),
     moveEventName,
     endEventName;
 
-if (isMobile) {
+if (canvas.mobile) {
     startEventName = 'touchstart';
     moveEventName = 'touchmove';
     endEventName = 'touchend';
@@ -896,7 +940,7 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./canvas.js":7,"./point.js":19,"./vector.js":26}],19:[function(require,module,exports){
+},{"./canvas.js":7,"./point.js":20,"./vector.js":27}],20:[function(require,module,exports){
 function Point(x, y) {
     return {
         x: x || 0,
@@ -915,7 +959,7 @@ function Point(x, y) {
 
 module.exports = Point;
 
-},{}],20:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 var Vector = require('./vector.js'),
     BaseClass = require('baseclassjs');
 
@@ -938,7 +982,7 @@ module.exports = function (theta, mag) {
     });
 };
 
-},{"./vector.js":26,"baseclassjs":2}],21:[function(require,module,exports){
+},{"./vector.js":27,"baseclassjs":2}],22:[function(require,module,exports){
 var Shape = require('./shape.js'),
     Point = require('./point.js'),
     Dimension = require('./dimension.js'),
@@ -1000,9 +1044,10 @@ module.exports = function (pos, size) {
     });
 };
 
-},{"./dimension.js":12,"./point.js":19,"./shape.js":23,"./vector.js":26}],22:[function(require,module,exports){
+},{"./dimension.js":12,"./point.js":20,"./shape.js":24,"./vector.js":27}],23:[function(require,module,exports){
 var BaseClass = require('baseclassjs'),
-    EventHandler = require('./event-handler.js');
+    EventHandler = require('./event-handler.js'),
+    Counter = require('./id-counter.js');
 
 /**
  * @param {Array|Sprite} [opts.spriteSet]
@@ -1013,32 +1058,29 @@ var BaseClass = require('baseclassjs'),
  * @param {Object} [opts.one] Dictionary of one-time events.
  */
 module.exports = function (opts) {
-    var sprites = [],
+    var self,
+        loaded = false,
+        sprites = [],
         spriteMap = {},
         spritesToAdd = [],
         spritesLoading = [],
+        loadQueue = {},
         spriteRemoved = false,
         collisionMap = {},
         updating = false,
         drawing = false;
 
-    opts.spriteSet = [].concat(opts.spriteSet);
-    opts.collisionSets = [].concat(opts.collisionSets);
-
-    // Load in the sprites.
-    opts.spriteSet.forEach(function (sprite) {
-        spritesToAdd.push(sprite);
-        if (sprite.name) {
-            spriteMap[sprite.name] = sprite;
-        }
-    });
-    // Load in collision handlers.
-    opts.collisionSets.forEach(function (handler) {
-        collisionMap[handler.name] = handler;
-    });
-
-    return BaseClass({
+    self = BaseClass({
         name: opts.name,
+        load: function (cb) {
+            if (!loaded) {
+                this.addSprites({
+                    set: opts.spriteSet,
+                    onload: cb
+                });
+                loaded = true;
+            }
+        },
         start: function () {
             sprites.forEach(function (sprite) {
                 sprite.strip.start();
@@ -1061,26 +1103,51 @@ module.exports = function (opts) {
             drawing = false;
         },
         depth: opts.depth || 0,
-        collisions: function () {
-            return collisionMap;
+        collision: function (name) {
+            return collisionMap[name];
         },
-        addCollisionSet: function (handler) {
-            collisionMap[handler.name] = handler;
+        /**
+         * @param {Array|CollisionHandler} set
+         */
+        addCollisionSets: function (set) {
+            if (set) {
+                set = [].concat(set);
+                set.forEach(function (handler) {
+                    collisionMap[handler.name] = handler;
+                });
+            }
         },
         sprite: function (name) {
             return spriteMap[name];
         },
         /**
+         * Loads sprites into this screen together
+         * as a batch. None of the batch will be
+         * loaded into the screen until all sprites
+         * are ready.
          * @param {Array|Sprite} opts.set
-         * @param {Function} [opts.onload]
+         * @param {Function} [onload]
          */
         addSprites: function (opts) {
-            var onload = opts.onload || function () {};
-            spritesToAdd = spritesToAdd.concat(opts.set);
-            /**
-             * Run onload after all sprites are done loading
-             * ... but how to know when that occurs??
-             */
+            var id, onload;
+            opts = opts || {};
+
+            if (opts.set) {
+                onload = opts.onload || function () {};
+                set = [].concat(opts.set);
+                id = Counter.nextId;
+
+                loadQueue[id] = set.length;
+                set.forEach(function (sprite) {
+                    sprite.load(function () {
+                        loadQueue[id] -= 1;
+                        if (loadQueue[id] === 0) {
+                            spritesToAdd = spritesToAdd.concat(set);
+                            onload();
+                        }
+                    });
+                });
+            }
         },
         removeSprite: function (sprite) {
             sprite.removed = true;
@@ -1151,6 +1218,7 @@ module.exports = function (opts) {
                 }
                 spritesToAdd = spritesLoading;
             }
+
             if (spriteRemoved) {
                 // Remove any stale sprites.
                 sprites = sprites.filter(function (sprite) {
@@ -1166,9 +1234,14 @@ module.exports = function (opts) {
             singles: opts.one
         })
     );
+
+    // Load in collision handlers.
+    self.addCollisionSets(opts.collisionSets);
+
+    return self;
 };
 
-},{"./event-handler.js":13,"baseclassjs":2}],23:[function(require,module,exports){
+},{"./event-handler.js":13,"./id-counter.js":16,"baseclassjs":2}],24:[function(require,module,exports){
 var BaseClass = require('baseclassjs'),
     Point = require('./point.js');
 
@@ -1198,7 +1271,7 @@ module.exports = function (opts) {
     });
 };
 
-},{"./point.js":19,"baseclassjs":2}],24:[function(require,module,exports){
+},{"./point.js":20,"baseclassjs":2}],25:[function(require,module,exports){
 var Collidable = require('./collidable.js'),
     Point = require('./point.js'),
     Dimension = require('./dimension.js');
@@ -1222,7 +1295,8 @@ var Collidable = require('./collidable.js'),
  */
 module.exports = function (opts) {
     var size = opts.size || opts.strip.size,
-        stripSize = opts.strip.size;
+        stripSize = opts.strip.size,
+        loaded = false;
 
     return Collidable(opts).extend({
         ready: function () {
@@ -1253,6 +1327,12 @@ module.exports = function (opts) {
                 this.rotation
             );
         },
+        load: function (cb) {
+            if (!loaded) {
+                opts.strip.load(cb);
+                loaded = true;
+            }
+        },
         move: function (x, y) {
             this.pos.x = x;
             this.pos.y = y;
@@ -1266,42 +1346,32 @@ module.exports = function (opts) {
     });
 };
 
-},{"./collidable.js":9,"./dimension.js":12,"./point.js":19}],25:[function(require,module,exports){
-var cache = {};
+},{"./collidable.js":9,"./dimension.js":12,"./point.js":20}],26:[function(require,module,exports){
+var createImage = require('./image.js'),
+    cache = {};
 
 /**
  * Duplicate calls to constructor will only
  * load a single time - returning cached
  * data on subsequent calls.
  * @param {String} opts.src
- * @param {Function} [opts.onload]
+ * @return {Image} HTML5 Image instance.
  */
 module.exports = function (opts) {
     var img,
-        onload = opts.onload || function () {};
+        src = opts.src;
 
-    // Check if already loaded and cached.
-    if (opts.src in cache) {
-        img = cache[opts.src];
-        onload(img);
-        return img;
+    if (src in cache) {
+        img = cache[src];
+    } else {
+        img = createImage(src);
+        cache[src] = img;
     }
 
-    // Create and cache the new image.
-    img = new Image();
-    img.ready = false;
-    cache[opts.src] = img;
-
-    img.onload = function () {
-        img.ready = true;
-        onload(img);
-    };
-
-    img.src = 'assets/img/' + opts.src;
     return img;
 };
 
-},{}],26:[function(require,module,exports){
+},{"./image.js":17}],27:[function(require,module,exports){
 var Point = require('./point.js');
 
 /**
@@ -1332,7 +1402,7 @@ module.exports = function (opts) {
     };
 };
 
-},{"./point.js":19}],27:[function(require,module,exports){
+},{"./point.js":20}],28:[function(require,module,exports){
 var Dragon = require('dragonjs'),
     Dimension = Dragon.Dimension,
     CollisionHandler = Dragon.CollisionHandler,
@@ -1344,27 +1414,20 @@ module.exports = CollisionHandler({
     canvasSize: Game.canvas
 });
 
-},{"dragonjs":11}],28:[function(require,module,exports){
+},{"dragonjs":11}],29:[function(require,module,exports){
 var Dragon = require('dragonjs'),
     Game = Dragon.Game,
     mainScreen = require('./screens/main.js');
 
-Game.addScreens({
-    set: mainScreen,
-    onload: function () {
-        Game.run({
-            debug: true
-        });
-    }
-});
+Game.addScreens(mainScreen);
 Game.run({
     debug: true
 });
 
-},{"./screens/main.js":29,"dragonjs":11}],29:[function(require,module,exports){
+},{"./screens/main.js":30,"dragonjs":11}],30:[function(require,module,exports){
 var Dragon = require('dragonjs'),
     Screen = Dragon.Screen,
-    Mouse = Dragon.Mouse,
+    Game = Dragon.Game,
     sky = require('../sprites/sky.js'),
     runner = require('../sprites/runner.js'),
     ground = require('../sprites/ground.js'),
@@ -1383,13 +1446,9 @@ module.exports = Screen({
             this.start();
         }
     }
-}).extend({
-    update: function () {
-        this.base.update();
-    }
 });
 
-},{"../collisions/main.js":27,"../sprites/ground.js":30,"../sprites/runner.js":31,"../sprites/sky.js":32,"dragonjs":11}],30:[function(require,module,exports){
+},{"../collisions/main.js":28,"../sprites/ground.js":31,"../sprites/runner.js":32,"../sprites/sky.js":33,"dragonjs":11}],31:[function(require,module,exports){
 var Dragon = require('dragonjs'),
     canvas = Dragon.Game.canvas,
     Point = Dragon.Point,
@@ -1416,7 +1475,7 @@ module.exports = Sprite({
     pos: Point(0, canvas.height - 79)
 });
 
-},{"../collisions/main.js":27,"dragonjs":11}],31:[function(require,module,exports){
+},{"../collisions/main.js":28,"dragonjs":11}],32:[function(require,module,exports){
 var Dragon = require('dragonjs'),
     Game = Dragon.Game,
     KeyDown = Dragon.Keyboard,
@@ -1496,7 +1555,7 @@ module.exports = Sprite({
     }
 });
 
-},{"../collisions/main.js":27,"dragonjs":11}],32:[function(require,module,exports){
+},{"../collisions/main.js":28,"dragonjs":11}],33:[function(require,module,exports){
 var Dragon = require('dragonjs'),
     Game = Dragon.Game,
     Point = Dragon.Point,
@@ -1519,4 +1578,4 @@ module.exports = Sprite({
     size: Game.canvas
 });
 
-},{"../collisions/main.js":27,"dragonjs":11}]},{},[28]);
+},{"../collisions/main.js":28,"dragonjs":11}]},{},[29]);
