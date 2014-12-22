@@ -567,7 +567,7 @@ var CollisionHandler = require('./collision-handler.js'),
 
 var debug = false,
     heartbeat = false,
-    throttle = 50,
+    throttle = 30,
     screens = [],
     screenMap = {},
     screensToAdd = [],
