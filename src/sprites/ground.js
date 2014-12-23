@@ -13,7 +13,7 @@ module.exports = Sprite({
     collisionSets: collisions,
     mask: Rect(
         Point(0, canvas.height - 79),
-        Dimension(canvas.width, 79)
+        Dimension(canvas.width / 2, 79)
     ),
     strip: AnimationStrip({
         sheet: SpriteSheet({

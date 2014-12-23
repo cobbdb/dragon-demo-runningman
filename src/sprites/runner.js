@@ -27,7 +27,7 @@ module.exports = Sprite({
         start: Point(),
         size: Dimension(165, 288),
         frames: 12,
-        speed: 5
+        speed: 1
     }),
     pos: Point(100, 100),
     size: Dimension(66, 115),
@@ -36,12 +36,6 @@ module.exports = Sprite({
     on: {
         'collide/ground': function () {
             console.log('Runner: Collided with ground!');
-        },
-        'collide/screentap': function () {
-            console.log('Runner: Tapped!');
-        },
-        'collide/screenhold': function () {
-            console.log('Runner: Squished!');
         },
         'collide/screendrag': function () {
             var pos = Mouse.offset.clone();
@@ -57,21 +51,10 @@ module.exports = Sprite({
             this.rotation %= 2 * Math.PI;
         }
 
-        if (KeyDown.arrow.left) {
-            this.speed.x = -10;
-        } else if (KeyDown.arrow.right) {
-            // Right arrow.
-            this.speed.x = 10;
-        } else {
-            this.speed.x = 0;
-        }
-
         if (KeyDown.arrow.up) {
-            this.speed.y = -10;
+            this.scale += 0.1;
         } else if (KeyDown.arrow.down) {
-            this.speed.y = 10;
-        } else {
-            this.speed.y = 0;
+            this.scale -= 0.1;
         }
 
         this.base.update();

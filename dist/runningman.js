@@ -118,8 +118,10 @@ module.exports = function (opts) {
             opts.sheet.load(cb);
         },
         start: function () {
-            timeLastFrame = new Date().getTime();
-            updating = true;
+            timeLastFrame = Date.now();
+            if (timeBetweenFrames) {
+                updating = true;
+            }
         },
         /**
          * Pausing halts the update loop but
@@ -140,14 +142,15 @@ module.exports = function (opts) {
         update: function () {
             var now, elapsed;
             if (updating) {
-                now = new Date().getTime();
+                now = Date.now();
                 elapsed = now - timeLastFrame;
-                timeLastFrame = now;
                 timeSinceLastFrame += elapsed;
                 if (timeSinceLastFrame >= timeBetweenFrames) {
-                    timeSinceLastFrame -= timeBetweenFrames;
+                    timeSinceLastFrame = 0;
                     this.nextFrame();
+                    console.log('new frame', this.frame);
                 }
+                timeLastFrame = now;
             }
         },
         nextFrame: function () {
@@ -166,7 +169,7 @@ module.exports = function (opts) {
                 offset = this.frame * size.width;
             scale = scale || Dimension(1, 1);
             rotation = rotation || 0;
-
+console.log('offset', offset, 'frame', this.frame);
             finalSize = Dimension(
                 size.width * scale.width,
                 size.height * scale.height
@@ -368,8 +371,8 @@ module.exports = function (opts) {
     return {
         name: opts.name,
         draw: function (ctx) {
-            collisionGrid.forEach(function (grid) {
-                grid.draw(ctx);
+            collisionGrid.forEach(function (partition) {
+                partition.draw(ctx);
             });
             activeCollisions.forEach(function (set) {
                 set.forEach(function (collidable) {
@@ -1184,39 +1187,26 @@ module.exports = function (opts) {
             }
         },
         teardown: function () {
-            var i,
-                doSort = false,
-                spritesLoading = [];
+            var i;
 
-            if (updating) {
-                for (i in collisionMap) {
-                    collisionMap[i].teardown();
-                }
+            for (i in collisionMap) {
+                collisionMap[i].teardown();
             }
 
             if (spritesToAdd.length) {
                 // Update the master sprite list after updates.
                 spritesToAdd.forEach(function (sprite) {
-                    if (sprite.ready()) {
-                        // Load the sprite into the game engine
-                        // if its resources are done loading.
-                        sprites.push(sprite);
-                        if (sprite.name) {
-                            spriteMap[sprite.name] = sprite;
-                        }
-                        doSort = true;
-                    } else {
-                        // Stash loading sprites for this frame.
-                        spritesLoading.push(sprite);
+                    sprites.push(sprite);
+                    if (sprite.name) {
+                        spriteMap[sprite.name] = sprite;
                     }
+                    sprite.strip.start();
                 });
-                if (doSort) {
-                    // Sort by descending sprite depths.
-                    sprites.sort(function (a, b) {
-                        return b.depth - a.depth;
-                    });
-                }
-                spritesToAdd = spritesLoading;
+                // Sort by descending sprite depths.
+                sprites.sort(function (a, b) {
+                    return b.depth - a.depth;
+                });
+                spritesToAdd = [];
             }
 
             if (spriteRemoved) {
@@ -1464,7 +1454,7 @@ module.exports = Sprite({
     collisionSets: collisions,
     mask: Rect(
         Point(0, canvas.height - 79),
-        Dimension(canvas.width, 79)
+        Dimension(canvas.width / 2, 79)
     ),
     strip: AnimationStrip({
         sheet: SpriteSheet({
@@ -1506,7 +1496,7 @@ module.exports = Sprite({
         start: Point(),
         size: Dimension(165, 288),
         frames: 12,
-        speed: 5
+        speed: 1
     }),
     pos: Point(100, 100),
     size: Dimension(66, 115),
@@ -1515,12 +1505,6 @@ module.exports = Sprite({
     on: {
         'collide/ground': function () {
             console.log('Runner: Collided with ground!');
-        },
-        'collide/screentap': function () {
-            console.log('Runner: Tapped!');
-        },
-        'collide/screenhold': function () {
-            console.log('Runner: Squished!');
         },
         'collide/screendrag': function () {
             var pos = Mouse.offset.clone();
@@ -1536,21 +1520,10 @@ module.exports = Sprite({
             this.rotation %= 2 * Math.PI;
         }
 
-        if (KeyDown.arrow.left) {
-            this.speed.x = -10;
-        } else if (KeyDown.arrow.right) {
-            // Right arrow.
-            this.speed.x = 10;
-        } else {
-            this.speed.x = 0;
-        }
-
         if (KeyDown.arrow.up) {
-            this.speed.y = -10;
+            this.scale += 0.1;
         } else if (KeyDown.arrow.down) {
-            this.speed.y = 10;
-        } else {
-            this.speed.y = 0;
+            this.scale -= 0.1;
         }
 
         this.base.update();
