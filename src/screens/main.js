@@ -1,9 +1,11 @@
 var Dragon = require('dragonjs'),
     Screen = Dragon.Screen,
     Game = Dragon.Game,
+    canvas = Game.canvas,
+    Point = Dragon.Point,
     sky = require('../sprites/sky.js'),
     runner = require('../sprites/runner.js'),
-    ground = require('../sprites/ground.js'),
+    Ground = require('../sprites/ground.js'),
     collisions = require('../collisions/main.js');
 
 module.exports = Screen({
@@ -12,7 +14,12 @@ module.exports = Screen({
     spriteSet: [
         sky,
         runner,
-        ground
+        Ground({
+            start: Point(0, canvas.height - 79)
+        }),
+        Ground({
+            start: Point(81, canvas.height - 79)
+        })
     ],
     one: {
         ready: function () {

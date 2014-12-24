@@ -1,7 +1,7 @@
 var Dragon = require('dragonjs'),
     Game = Dragon.Game,
-    KeyDown = Dragon.Keyboard,
     Mouse = Dragon.Mouse,
+    KeyDown = Dragon.Keyboard,
     Point = Dragon.Point,
     Dimension = Dragon.Dimension,
     Rect = Dragon.Rectangle,
@@ -17,46 +17,40 @@ module.exports = Sprite({
         Game.screenTap
     ],
     mask: Rect(
-        Point(100, 100),
-        Dimension(66, 115)
+        Point(100, 104),
+        Dimension(64, 60)
     ),
     strip: AnimationStrip({
         sheet: SpriteSheet({
-            src: 'runningGrant.png'
+            src: 'orc-walk.png'
         }),
-        start: Point(),
-        size: Dimension(165, 288),
-        frames: 12,
-        speed: 1
+        start: Point(0, 704),
+        size: Dimension(64, 64),
+        frames: 9,
+        speed: 8
     }),
     pos: Point(100, 100),
-    size: Dimension(66, 115),
-    rotation: 0.4,
     depth: 2,
     on: {
-        'collide/ground': function () {
-            console.log('Runner: Collided with ground!');
+        'colliding/ground': function (other) {
+            this.speed.y = 0;
+            this.pos.y = other.pos.y - this.mask.height;
         },
-        'collide/screendrag': function () {
+        'colliding/screendrag': function () {
             var pos = Mouse.offset.clone();
             pos.x -= this.size.width / 2;
             pos.y -= this.size.height / 2;
             this.move(pos.x, pos.y);
+            //this.speed.y = 0;
         }
     }
 }).extend({
     update: function () {
         if (KeyDown.name(' ')) {
-            this.rotation += 0.3;
-            this.rotation %= 2 * Math.PI;
+            blah = 'blah';
         }
-
-        if (KeyDown.arrow.up) {
-            this.scale += 0.1;
-        } else if (KeyDown.arrow.down) {
-            this.scale -= 0.1;
-        }
-
+        this.speed.y += 1.5;
         this.base.update();
+        console.log(this.pos.y, this.speed.y);
     }
 });

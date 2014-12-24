@@ -8,19 +8,29 @@ var Dragon = require('dragonjs'),
     SpriteSheet = Dragon.SpriteSheet,
     collisions = require('../collisions/main.js');
 
-module.exports = Sprite({
-    name: 'ground',
-    collisionSets: collisions,
-    mask: Rect(
-        Point(0, canvas.height - 79),
-        Dimension(canvas.width / 2, 79)
-    ),
-    strip: AnimationStrip({
-        sheet: SpriteSheet({
-            src: 'ground.png'
+/**
+ * @param {Point} [opts.start] Start position of this tile.
+ */
+module.exports = function (opts) {
+    var start;
+    opts = opts || {};
+    start = opts.start || Point();
+
+    return Sprite({
+        name: 'ground',
+        collisionSets: collisions,
+        mask: Rect(
+            start,
+            Dimension(81, 40)
+        ),
+        strip: AnimationStrip({
+            sheet: SpriteSheet({
+                src: 'ground.png'
+            }),
+            size: Dimension(81, 79)
         }),
-        size: Dimension(81, 79)
-    }),
-    pos: Point(0, canvas.height - 79),
-    depth: 8
-});
+        pos: start,
+        depth: 8,
+        freemask: true
+    });
+};
