@@ -1422,9 +1422,6 @@ Game.run({
 },{"./screens/main.js":30,"dragonjs":11}],30:[function(require,module,exports){
 var Dragon = require('dragonjs'),
     Screen = Dragon.Screen,
-    Game = Dragon.Game,
-    canvas = Game.canvas,
-    Point = Dragon.Point,
     sky = require('../sprites/sky.js'),
     runner = require('../sprites/runner.js'),
     Ground = require('../sprites/ground.js'),
@@ -1436,12 +1433,10 @@ module.exports = Screen({
     spriteSet: [
         sky,
         runner,
-        Ground({
-            start: Point(0, canvas.height - 79)
-        }),
-        Ground({
-            start: Point(81, canvas.height - 79)
-        })
+        Ground(0),
+        Ground(81),
+        Ground(162),
+        Ground(243)
     ],
     one: {
         ready: function () {
@@ -1462,18 +1457,14 @@ var Dragon = require('dragonjs'),
     collisions = require('../collisions/main.js');
 
 /**
- * @param {Point} [opts.start] Start position of this tile.
+ * @param {Number} startx
  */
-module.exports = function (opts) {
-    var start;
-    opts = opts || {};
-    start = opts.start || Point();
-
+module.exports = function (startx) {
     return Sprite({
         name: 'ground',
         collisionSets: collisions,
         mask: Rect(
-            start,
+            Point(startx, canvas.height - 79),
             Dimension(81, 40)
         ),
         strip: AnimationStrip({
@@ -1482,7 +1473,7 @@ module.exports = function (opts) {
             }),
             size: Dimension(81, 79)
         }),
-        pos: start,
+        pos: Point(startx, canvas.height - 79),
         depth: 8,
         freemask: true
     });
@@ -1507,16 +1498,47 @@ module.exports = Sprite({
         collisions,
         Game.screenTap
     ],
+    /**
+     * Feels like size/Dimension is fine, but
+     * start/Point is awkward. Should be an
+     * offset/Point instead. Offset from the
+     * Sprite's starting point and that offset
+     * persists through calls to move() and shift().
+     * This becomes: Point(0, 4)
+     * Just add in Sprite's start to the masks
+     * position:
+     * mask.x += this.pos.x;
+     * mask.y += this.pos.y;
+     */
     mask: Rect(
         Point(100, 104),
         Dimension(64, 60)
     ),
     strip: AnimationStrip({
+        /**
+         * Should be {Object} sheets and allow
+         * useSheet(name) to swap between the
+         * different sheets. ex) running, swimming, etc.
+         * also maintain runner.sheet to fetch
+         * current sheet.
+         */
         sheet: SpriteSheet({
             src: 'orc-walk.png'
         }),
+        /**
+         * start should be grid index instead
+         * of pixel offset. by defining size, the pixel
+         * offset is implied.. plus it's awkward this way.
+         */
         start: Point(0, 704),
         size: Dimension(64, 64),
+        /**
+         * An option for sinusoid frame cycle would be
+         * nice to have. Right now it assumes always
+         * modulo, but sometimes sinusoid is wanted instead:
+         * modulo: 0, 1, 2, 0, 1, 2, 0, 1, ...
+         * sinusoid: 0, 1, 2, 1, 0, 1, 2, 1, ...
+         */
         frames: 9,
         speed: 8
     }),
@@ -1535,14 +1557,11 @@ module.exports = Sprite({
             this.speed.y = 0;
         },
         'collide/screentap': function () {
-            this.speed.y = -50;
+            this.speed.y = -30;
         }
     }
 }).extend({
     update: function () {
-        if (KeyDown.name(' ')) {
-            blah = 'blah';
-        }
         this.speed.y += 3;
         this.base.update();
     }

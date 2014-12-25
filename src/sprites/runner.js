@@ -16,6 +16,18 @@ module.exports = Sprite({
         collisions,
         Game.screenTap
     ],
+    /**
+     * Feels like size/Dimension is fine, but
+     * start/Point is awkward. Should be an
+     * offset/Point instead. Offset from the
+     * Sprite's starting point and that offset
+     * persists through calls to move() and shift().
+     * This becomes: Point(0, 4)
+     * Just add in Sprite's start to the masks
+     * position:
+     * mask.x += this.pos.x;
+     * mask.y += this.pos.y;
+     */
     mask: Rect(
         Point(100, 104),
         Dimension(64, 60)
@@ -31,8 +43,20 @@ module.exports = Sprite({
         sheet: SpriteSheet({
             src: 'orc-walk.png'
         }),
+        /**
+         * start should be grid index instead
+         * of pixel offset. by defining size, the pixel
+         * offset is implied.. plus it's awkward this way.
+         */
         start: Point(0, 704),
         size: Dimension(64, 64),
+        /**
+         * An option for sinusoid frame cycle would be
+         * nice to have. Right now it assumes always
+         * modulo, but sometimes sinusoid is wanted instead:
+         * modulo: 0, 1, 2, 0, 1, 2, 0, 1, ...
+         * sinusoid: 0, 1, 2, 1, 0, 1, 2, 1, ...
+         */
         frames: 9,
         speed: 8
     }),
@@ -51,14 +75,11 @@ module.exports = Sprite({
             this.speed.y = 0;
         },
         'collide/screentap': function () {
-            this.speed.y = -50;
+            this.speed.y = -30;
         }
     }
 }).extend({
     update: function () {
-        if (KeyDown.name(' ')) {
-            blah = 'blah';
-        }
         this.speed.y += 3;
         this.base.update();
     }
