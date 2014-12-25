@@ -21,6 +21,13 @@ module.exports = Sprite({
         Dimension(64, 60)
     ),
     strip: AnimationStrip({
+        /**
+         * Should be {Object} sheets and allow
+         * useSheet(name) to swap between the
+         * different sheets. ex) running, swimming, etc.
+         * also maintain runner.sheet to fetch
+         * current sheet.
+         */
         sheet: SpriteSheet({
             src: 'orc-walk.png'
         }),
@@ -36,12 +43,15 @@ module.exports = Sprite({
             this.speed.y = 0;
             this.pos.y = other.pos.y - this.mask.height;
         },
-        'colliding/screendrag': function () {
+        'collide/screendrag': function () {
             var pos = Mouse.offset.clone();
             pos.x -= this.size.width / 2;
             pos.y -= this.size.height / 2;
             this.move(pos.x, pos.y);
-            //this.speed.y = 0;
+            this.speed.y = 0;
+        },
+        'collide/screentap': function () {
+            this.speed.y = -50;
         }
     }
 }).extend({
@@ -49,8 +59,7 @@ module.exports = Sprite({
         if (KeyDown.name(' ')) {
             blah = 'blah';
         }
-        this.speed.y += 1.5;
+        this.speed.y += 3;
         this.base.update();
-        console.log(this.pos.y, this.speed.y);
     }
 });
