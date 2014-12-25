@@ -99,7 +99,11 @@ module.exports = function (opts) {
         updating = false,
         frames = opts.frames || 1,
         size = opts.size || Dimension(),
-        start = opts.start || Point();
+        start = opts.start || Point(),
+        start = Point(
+            size.width * start.x,
+            size.height * start.y
+        );
 
     if (opts.speed > 0) {
         // Convert to milliseconds / frame
@@ -1393,7 +1397,8 @@ module.exports = function (opts) {
             var rise = this.end.x - this.start.x,
                 run = this.end.y - this.start.y;
             return Math.sqrt((rise * rise) + (run * run));
-        }
+        },
+        scale: function () {}
     };
 };
 
@@ -1525,12 +1530,7 @@ module.exports = Sprite({
         sheet: SpriteSheet({
             src: 'orc-walk.png'
         }),
-        /**
-         * start should be grid index instead
-         * of pixel offset. by defining size, the pixel
-         * offset is implied.. plus it's awkward this way.
-         */
-        start: Point(0, 704),
+        start: Point(1, 11),
         size: Dimension(64, 64),
         /**
          * An option for sinusoid frame cycle would be
@@ -1539,7 +1539,7 @@ module.exports = Sprite({
          * modulo: 0, 1, 2, 0, 1, 2, 0, 1, ...
          * sinusoid: 0, 1, 2, 1, 0, 1, 2, 1, ...
          */
-        frames: 9,
+        frames: 8,
         speed: 8
     }),
     pos: Point(100, 100),
@@ -1583,9 +1583,7 @@ module.exports = Sprite({
         sheet: SpriteSheet({
             src: 'sky.png'
         }),
-        start: Point(),
-        size: Dimension(5, 400),
-        frames: 1
+        size: Dimension(5, 400)
     }),
     size: Game.canvas,
     depth: 10

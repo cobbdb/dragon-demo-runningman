@@ -13,9 +13,7 @@ module.exports = Sprite({
         sheet: SpriteSheet({
             src: 'sky.png'
         }),
-        start: Point(),
-        size: Dimension(5, 400),
-        frames: 1
+        size: Dimension(5, 400)
     }),
     size: Game.canvas,
     depth: 10
