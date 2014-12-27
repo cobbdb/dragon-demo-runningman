@@ -4,5 +4,5 @@ var Dragon = require('dragonjs'),
 
 Game.addScreens(mainScreen);
 Game.run({
-    debug: false
+    debug: true
 });

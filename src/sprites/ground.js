@@ -3,6 +3,7 @@ var Dragon = require('dragonjs'),
     Point = Dragon.Point,
     Dimension = Dragon.Dimension,
     Rect = Dragon.Rectangle,
+    Circ = Dragon.Circle,
     Sprite = Dragon.Sprite,
     AnimationStrip = Dragon.AnimationStrip,
     SpriteSheet = Dragon.SpriteSheet,
@@ -19,6 +20,7 @@ module.exports = function (startx) {
             Point(startx, canvas.height - 79),
             Dimension(81, 40)
         ),
+        freemask: true,
         strip: AnimationStrip({
             sheet: SpriteSheet({
                 src: 'ground.png'
@@ -26,7 +28,6 @@ module.exports = function (startx) {
             size: Dimension(81, 79)
         }),
         pos: Point(startx, canvas.height - 79),
-        depth: 8,
-        freemask: true
+        depth: 8
     });
 };

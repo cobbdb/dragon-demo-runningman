@@ -8,6 +8,7 @@ var Dragon = require('dragonjs'),
     Sprite = Dragon.Sprite,
     AnimationStrip = Dragon.AnimationStrip,
     SpriteSheet = Dragon.SpriteSheet,
+    Polar = Dragon.Polar,
     collisions = require('../collisions/main.js');
 
 module.exports = Sprite({

@@ -233,15 +233,12 @@ var Shape = require('./shape.js'),
  * @param {Number} [rad] Defaults to 0.
  */
 module.exports = function (pos, rad) {
-    pos = pos || Point();
-    rad = rad || 0;
-
     return Shape({
-        pos: pos,
+        pos: pos || Point(),
         name: 'circle',
         intersects: {
             rectangle: function (rect) {
-                var len, vect,
+                var vect,
                     pt = Point(this.x, this.y);
 
                 if (this.x > rect.right) pt.x = rect.right;
@@ -249,22 +246,22 @@ module.exports = function (pos, rad) {
                 if (this.y > rect.bottom) pt.y = rect.bottom;
                 else if (this.y < rect.y) pt.y = rect.y;
 
-                vect = Vector({
-                    start: pt,
-                    end: this
-                });
-                return vect.size < this.radius;
+                vect = Vector(
+                    this.x - pt.x,
+                    this.y - pt.y
+                );
+                return vect.magnitude < this.radius;
             },
             circle: function (circ) {
-                var vect = Vector({
-                    start: this,
-                    end: circ
-                });
-                return vect.size < this.radius + circ.radius;
+                var vect = Vector(
+                    circ.x - this.x,
+                    circ.y - this.y
+                );
+                return vect.magnitude < this.radius + circ.radius;
             }
         }
     }).extend({
-        radius: rad,
+        radius: rad || 0,
         draw: function (ctx) {
             ctx.beginPath();
             ctx.lineWidth = 1;
@@ -467,12 +464,23 @@ module.exports = {
 };
 
 },{"./animation-strip.js":6,"./circle.js":8,"./collidable.js":9,"./collision-handler.js":10,"./dimension.js":12,"./event-handler.js":13,"./frame-counter.js":14,"./game.js":15,"./id-counter.js":16,"./keyboard.js":18,"./mouse.js":19,"./point.js":20,"./polar.js":21,"./rectangle.js":22,"./screen.js":23,"./shape.js":24,"./sprite.js":25,"./spritesheet.js":26,"./vector.js":27}],12:[function(require,module,exports){
-module.exports = function (w, h) {
+function Dimension(w, h) {
     return {
         width: w || 0,
-        height: h || 0
+        height: h || 0,
+        clone: function () {
+            return Dimension(this.width, this.height);
+        },
+        equals: function (other) {
+            return (
+                this.width === other.width &&
+                this.height === other.height
+            );
+        }
     };
-};
+}
+
+module.exports = Dimension;
 
 },{}],13:[function(require,module,exports){
 var BaseClass = require('baseclassjs');
@@ -662,7 +670,7 @@ module.exports = {
         if (Mouse.is.dragging) {
             tapCollisionSet.update(Collidable({
                 name: 'screendrag',
-                mask: Circle(Mouse.offset, 15)
+                mask: Circle(Mouse.offset, 25)
             }));
         } else if (Mouse.is.holding) {
             tapCollisionSet.update(Collidable({
@@ -895,10 +903,10 @@ canvas.addEventListener(
         current.y = event.offsetY;
 
         if (isDown) {
-            shift.start = current;
-            shift.end = last;
+            shift.x = current.x - last.x;
+            shift.y = current.y - last.y;
             // Drag threshold.
-            if (shift.size > 1) {
+            if (shift.magnitude > 1) {
                 isDragging = true;
             }
         }
@@ -954,31 +962,56 @@ function Point(x, y) {
             );
         }
     };
-};
+}
 
 module.exports = Point;
 
 },{}],21:[function(require,module,exports){
 var Vector = require('./vector.js');
 
-module.exports = function (theta, mag) {
+function isEqual(my, other, tfactor, mfactor) {
+    var mag = my.magnitude === mfactor * other.magnitude,
+        mytheta = (my.theta % Math.PI).toFixed(5),
+        otheta = ((other.theta + tfactor) % Math.PI).toFixed(5);
+    return mag && (mytheta === otheta);
+}
+
+/**
+ * @param {Number} [theta] Defaults to 0.
+ * @param {Number} [mag] Defaults to 0.
+ */
+function Polar(theta, mag) {
     return {
         theta: theta || 0,
         magnitude: mag || 0,
         invert: function () {
-            // Mutate the vector and return.
-            this.magnitude *= -1;
-            this.theta += Math.PI;
-            return this;
+            return Polar(
+                this.theta + Math.PI,
+                this.magnitude * -1
+            );
+        },
+        clone: function () {
+            return Polar(
+                this.theta,
+                this.magnitude
+            );
         },
         toVector: function () {
             return Vector(
-                mag * Math.cos(theta),
-                mag * Math.sin(theta)
+                this.magnitude * Math.cos(this.theta),
+                this.magnitude * Math.sin(this.theta)
+            );
+        },
+        equals: function (other) {
+            return (
+                isEqual(this, other, 0, 1) ||
+                isEqual(this, other, Math.PI, -1)
             );
         }
     };
-};
+}
+
+module.exports = Polar;
 
 },{"./vector.js":27}],22:[function(require,module,exports){
 var Shape = require('./shape.js'),
@@ -1015,11 +1048,11 @@ module.exports = function (pos, size) {
                 if (circ.y > this.bottom) pt.y = this.bottom;
                 else if (circ.y < this.y) pt.y = this.y;
 
-                vect = Vector({
-                    start: pt,
-                    end: circ
-                });
-                return vect.size < circ.radius;
+                vect = Vector(
+                    circ.x - pt.x,
+                    circ.y - pt.y
+                );
+                return vect.magnitude < circ.radius;
             }
         }
     }).extend({
@@ -1371,38 +1404,57 @@ module.exports = function (opts) {
 };
 
 },{"./image.js":17}],27:[function(require,module,exports){
-var Point = require('./point.js');
+var Polar = require('./polar.js');
 
 /**
- * @param {Point} [opts.start] Defaults to (0,0).
- * @param {Dimension|Point} [opts.size|opts.end] Defaults
- * to (0,0). Either size of vector or the ending point.
+ * @param {Number} [x] Defaults to 0.
+ * @param {Number} [y] Defaults to 0.
  */
-module.exports = function (opts) {
-    var start, end;
-
-    opts = opts || {};
-    start = opts.start || Point();
-    end = opts.end || Point();
-
-    if (opts.size) {
-        end.x = start.x + opts.size.width;
-        end.y = start.y + opts.size.height;
-    }
-
+function Vector(x, y) {
     return {
-        start: start,
-        end: end,
-        get size () {
-            var rise = this.end.x - this.start.x,
-                run = this.end.y - this.start.y;
-            return Math.sqrt((rise * rise) + (run * run));
+        x: x || 0,
+        y: y || 0,
+        get magnitude () {
+            return Math.abs(
+                Math.sqrt(
+                    (this.y * this.y) +
+                    (this.x * this.x)
+                )
+            );
         },
-        scale: function () {}
+        invert: function () {
+            return this.scale(-1);
+        },
+        clone: function () {
+            return Vector(
+                this.x,
+                this.y
+            );
+        },
+        equals: function (other) {
+            return (
+                this.x === other.x &&
+                this.y === other.y
+            );
+        },
+        scale: function (scale) {
+            return Vector(
+                this.x * scale,
+                this.y * scale
+            );
+        },
+        toPolar: function () {
+            return Polar(
+                Math.atan(this.y / this.x),
+                this.magnitude
+            );
+        }
     };
-};
+}
 
-},{"./point.js":20}],28:[function(require,module,exports){
+module.exports = Vector;
+
+},{"./polar.js":21}],28:[function(require,module,exports){
 var Dragon = require('dragonjs'),
     Dimension = Dragon.Dimension,
     CollisionHandler = Dragon.CollisionHandler,
@@ -1421,7 +1473,7 @@ var Dragon = require('dragonjs'),
 
 Game.addScreens(mainScreen);
 Game.run({
-    debug: false
+    debug: true
 });
 
 },{"./screens/main.js":30,"dragonjs":11}],30:[function(require,module,exports){
@@ -1456,6 +1508,7 @@ var Dragon = require('dragonjs'),
     Point = Dragon.Point,
     Dimension = Dragon.Dimension,
     Rect = Dragon.Rectangle,
+    Circ = Dragon.Circle,
     Sprite = Dragon.Sprite,
     AnimationStrip = Dragon.AnimationStrip,
     SpriteSheet = Dragon.SpriteSheet,
@@ -1472,6 +1525,7 @@ module.exports = function (startx) {
             Point(startx, canvas.height - 79),
             Dimension(81, 40)
         ),
+        freemask: true,
         strip: AnimationStrip({
             sheet: SpriteSheet({
                 src: 'ground.png'
@@ -1479,8 +1533,7 @@ module.exports = function (startx) {
             size: Dimension(81, 79)
         }),
         pos: Point(startx, canvas.height - 79),
-        depth: 8,
-        freemask: true
+        depth: 8
     });
 };
 
@@ -1495,6 +1548,7 @@ var Dragon = require('dragonjs'),
     Sprite = Dragon.Sprite,
     AnimationStrip = Dragon.AnimationStrip,
     SpriteSheet = Dragon.SpriteSheet,
+    Polar = Dragon.Polar,
     collisions = require('../collisions/main.js');
 
 module.exports = Sprite({
