@@ -1473,7 +1473,7 @@ var Dragon = require('dragonjs'),
 
 Game.addScreens(mainScreen);
 Game.run({
-    debug: true
+    debug: false
 });
 
 },{"./screens/main.js":30,"dragonjs":11}],30:[function(require,module,exports){
