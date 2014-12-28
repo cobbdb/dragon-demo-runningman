@@ -339,11 +339,8 @@ module.exports = function (opts) {
         nextFrame: function () {
             this.frame += direction;
             if (opts.sinusoid) {
-                if (this.frame === frames) {
-                    direction = -1;
-                    this.frame -= 2;
-                } else if (this.frame === 0) {
-                    direction = 1;
+                if (this.frame % (frames - 1) === 0) {
+                    direction *= -1;
                 }
             } else {
                 this.frame %= frames;
