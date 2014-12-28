@@ -79,8 +79,185 @@ module.exports = function (key, root, base, self) {
 module.exports = function () {};
 
 },{}],6:[function(require,module,exports){
+(function (global){
+/**
+ * # Lumberjack
+ * Set `localStorage.lumberjack` to `on` to enable logging.
+ * @param {Boolean} enabled True to force logging regardless of
+ * the localStorage setting.
+ * @return {Object} A new Lumberjack.
+ * @see GitHub-Page http://github.com/cobbdb/lumberjack
+ */
+module.exports = function (enabled) {
+    var log,
+        record = {},
+        cbQueue = {},
+        master = [],
+        ls = global.localStorage || {};
+
+    /**
+     * ## log(channel, data)
+     * Record a log entry for an channel.
+     * @param {String} channel A string describing this channel.
+     * @param {String|Object|Number|Boolean} data Some data to log.
+     */
+    log = function (channel, data) {
+        var i, len, channel, entry;
+        var channelValid = typeof channel === 'string';
+        var dataType = typeof data;
+        var dataValid = dataType !== 'undefined' && dataType !== 'function';
+        if (ls.lumberjack !== 'on' && !enabled) {
+            // Do nothing unless enabled.
+            return;
+        }
+        if (channelValid && dataValid) {
+            /**
+             * All log entries take the form of:
+             * ```javascript
+             *  {
+             *      time: // timestamp when entry was logged
+             *      data: // the logged data
+             *      channel: // channel of entry
+             *      id: // id of entry in master record
+             *  }
+             * ```
+             */
+            entry = {
+                time: new Date(),
+                data: data,
+                channel: channel,
+                id: master.length
+            };
+            // Record the channel.
+            record[channel] = record[channel] || []
+            record[channel].push(entry);
+            master.push(entry);
+
+            // Perform any attached callbacks.
+            cbQueue[channel] = cbQueue[channel] || [];
+            len = cbQueue[channel].length;
+            for (i = 0; i < len; i += 1) {
+                cbQueue[channel][i](data);
+            }
+        } else {
+            throw Error('Lumberjack Error: log(channel, data) requires an channel {String} and a payload {String|Object|Number|Boolean}.');
+        }
+    };
+
+    /**
+     * ## log.clear([channel])
+     * Clear all data from a the log.
+     * @param {String} [channel] Name of a channel.
+     */
+    log.clear = function (channel) {
+        if (channel) {
+            record[channel] = [];
+        } else {
+            record = {};
+            master = [];
+        }
+    };
+
+    /**
+     * ## log.readback(channel, [pretty])
+     * Fetch the log of an channel.
+     * @param {String} channel A string describing this channel.
+     * @param {Boolean} [pretty] True to create a formatted string result.
+     * @return {Array|String} This channel's current record.
+     */
+    log.readback = function (channel, pretty) {
+        var channelValid = typeof channel === 'string';
+        if (channelValid) {
+            if (pretty) {
+                return JSON.stringify(record[channel], null, 4);
+            }
+            return record[channel] || [];
+        }
+        throw Error('log.readback(channel, pretty) requires an channel {String}.');
+    };
+
+    /**
+     * ## log.readback.master([pretty])
+     * Get a full readback of all channels' entries.
+     * @param {Boolean} [pretty] True to create a formatted string result.
+     * @return {Array|String} This log's master record.
+     */
+    log.readback.master = function (pretty) {
+        if (pretty) {
+            return JSON.stringify(master, null, 4);
+        }
+        return master;
+    };
+
+    /**
+     * ## log.readback.channels([pretty])
+     * Fetch list of log channels currently in use.
+     * @param {Boolean} [pretty] True to create a formatted string result.
+     * @return {Array|String} This log's set of used channels.
+     */
+    log.readback.channels = function (pretty) {
+        var keys = Object.keys(record);
+        if (pretty) {
+            return JSON.stringify(keys);
+        }
+        return keys;
+    };
+
+    /**
+     * ## log.on(channel, cb)
+     * Attach a callback to run anytime a channel is logged to.
+     * @param {String} channel A string describing this channel.
+     * @param {Function} cb The callback.
+     */
+    log.on = function (channel, cb) {
+        var channelValid = typeof channel === 'string';
+        var cbValid = typeof cb === 'function';
+        if (channelValid && cbValid) {
+            cbQueue[channel] = cbQueue[channel] || [];
+            cbQueue[channel].push(cb);
+        } else {
+            throw Error('log.on(channel, cb) requires an channel {String} and a callback {Function}.');
+        }
+    };
+
+    /**
+     * ## log.off(channel)
+     * Disable side-effects for a given channel.
+     * @param {String} channel A string describing this channel.
+     */
+    log.off = function (channel) {
+        var channelValid = typeof channel === 'string';
+        if (channelValid) {
+            cbQueue[channel] = [];
+        } else {
+            throw Error('log.off(channel) requires an channel {String}.');
+        }
+    };
+
+    /**
+     * ## log.enable()
+     * Activate logging regardless of previous settings.
+     */
+    log.enable = function () {
+        enabled = true;
+    };
+
+    /**
+     * ## log.disable()
+     * Force logging off.
+     */
+    log.disable = function () {
+        enabled = false;
+    };
+
+    return log;
+};
+
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{}],7:[function(require,module,exports){
 var Dimension = require('./dimension.js'),
-    Point = require('./point.js');
+    Point = require('./point.js'),
+    log = require('./log.js');
 
 /**
  * @param {SpriteSheet} opts.sheet
@@ -91,6 +268,8 @@ var Dimension = require('./dimension.js'),
  * @param {Number} [opts.frames] Defaults to 1. Number of
  * frames in this strip.
  * @param {Number} [opts.speed] Number of frames per second.
+ * @param {Boolean} [opts.sinusoid] Defaults to false. True
+ * to cycle the frames forward and backward in a sinusoid.
  */
 module.exports = function (opts) {
     var timeBetweenFrames,
@@ -103,7 +282,8 @@ module.exports = function (opts) {
         start = Point(
             size.width * start.x,
             size.height * start.y
-        );
+        ),
+        direction = 1;
 
     if (opts.speed > 0) {
         // Convert to milliseconds / frame
@@ -157,8 +337,17 @@ module.exports = function (opts) {
             }
         },
         nextFrame: function () {
-            this.frame += 1;
-            this.frame %= frames;
+            this.frame += direction;
+            if (opts.sinusoid) {
+                if (this.frame === frames) {
+                    direction = -1;
+                    this.frame -= 2;
+                } else if (this.frame === 0) {
+                    direction = 1;
+                }
+            } else {
+                this.frame %= frames;
+            }
             return this.frame;
         },
         /**
@@ -201,7 +390,7 @@ module.exports = function (opts) {
     };
 };
 
-},{"./dimension.js":12,"./point.js":20}],7:[function(require,module,exports){
+},{"./dimension.js":13,"./log.js":20,"./point.js":22}],8:[function(require,module,exports){
 var canvas = document.createElement('canvas');
 
 if (window.innerWidth >= 500) {
@@ -222,7 +411,7 @@ document.body.appendChild(canvas);
 canvas.ctx = canvas.getContext('2d');
 module.exports = canvas;
 
-},{}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 var Shape = require('./shape.js'),
     Vector = require('./vector.js'),
     Point = require('./point.js'),
@@ -272,7 +461,7 @@ module.exports = function (pos, rad) {
     });
 };
 
-},{"./dimension.js":12,"./point.js":20,"./shape.js":24,"./vector.js":27}],9:[function(require,module,exports){
+},{"./dimension.js":13,"./point.js":22,"./shape.js":26,"./vector.js":29}],10:[function(require,module,exports){
 var Counter = require('./id-counter.js'),
     EventHandler = require('./event-handler.js'),
     BaseClass = require('baseclassjs'),
@@ -329,18 +518,18 @@ module.exports = function (opts) {
     );
 };
 
-},{"./event-handler.js":13,"./id-counter.js":16,"./rectangle.js":22,"baseclassjs":2}],10:[function(require,module,exports){
+},{"./event-handler.js":14,"./id-counter.js":17,"./rectangle.js":24,"baseclassjs":2}],11:[function(require,module,exports){
 var Rectangle = require('./rectangle.js'),
     Point = require('./point.js'),
-    Dimension = require('./dimension.js');
+    Dimension = require('./dimension.js'),
+    canvas = require('./canvas.js');
 
 /**
  * @param {String} opts.name
  * @param {Dimension} [opts.gridSize] Defaults to (1,1).
- * @param {Dimension} opts.canvasSize Dimension of the game canvas.
  */
 module.exports = function (opts) {
-    var i, j, len,
+    var i, j,
         collisionGrid = [],
         activeCollisions = [],
         gridSize = opts.gridSize || Dimension(1, 1);
@@ -350,20 +539,19 @@ module.exports = function (opts) {
             collisionGrid.push(
                 Rectangle(
                     Point(
-                        i / gridSize.width * opts.canvasSize.width,
-                        j / gridSize.height * opts.canvasSize.height
+                        i / gridSize.width * canvas.width,
+                        j / gridSize.height * canvas.height
                     ),
                     Dimension(
-                        opts.canvasSize.width / gridSize.width,
-                        opts.canvasSize.height / gridSize.height
+                        canvas.width / gridSize.width,
+                        canvas.height / gridSize.height
                     )
                 )
             );
         }
     }
 
-    len = collisionGrid.length;
-    for (i = 0; i < len; i += 1) {
+    for (i = 0; i < collisionGrid.length; i += 1) {
         activeCollisions.push([]);
     }
 
@@ -436,7 +624,7 @@ module.exports = function (opts) {
     };
 };
 
-},{"./dimension.js":12,"./point.js":20,"./rectangle.js":22}],11:[function(require,module,exports){
+},{"./canvas.js":8,"./dimension.js":13,"./point.js":22,"./rectangle.js":24}],12:[function(require,module,exports){
 module.exports = {
     Shape: require('./shape.js'),
     Circle: require('./circle.js'),
@@ -463,7 +651,7 @@ module.exports = {
     Sprite: require('./sprite.js')
 };
 
-},{"./animation-strip.js":6,"./circle.js":8,"./collidable.js":9,"./collision-handler.js":10,"./dimension.js":12,"./event-handler.js":13,"./frame-counter.js":14,"./game.js":15,"./id-counter.js":16,"./keyboard.js":18,"./mouse.js":19,"./point.js":20,"./polar.js":21,"./rectangle.js":22,"./screen.js":23,"./shape.js":24,"./sprite.js":25,"./spritesheet.js":26,"./vector.js":27}],12:[function(require,module,exports){
+},{"./animation-strip.js":7,"./circle.js":9,"./collidable.js":10,"./collision-handler.js":11,"./dimension.js":13,"./event-handler.js":14,"./frame-counter.js":15,"./game.js":16,"./id-counter.js":17,"./keyboard.js":19,"./mouse.js":21,"./point.js":22,"./polar.js":23,"./rectangle.js":24,"./screen.js":25,"./shape.js":26,"./sprite.js":27,"./spritesheet.js":28,"./vector.js":29}],13:[function(require,module,exports){
 function Dimension(w, h) {
     return {
         width: w || 0,
@@ -482,7 +670,7 @@ function Dimension(w, h) {
 
 module.exports = Dimension;
 
-},{}],13:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 var BaseClass = require('baseclassjs');
 
 /**
@@ -536,7 +724,7 @@ module.exports = function (opts) {
     });
 };
 
-},{"baseclassjs":2}],14:[function(require,module,exports){
+},{"baseclassjs":2}],15:[function(require,module,exports){
 var timeSinceLastSecond = frameCountThisSecond = frameRate = 0,
     timeLastFrame = new Date().getTime();
 
@@ -565,7 +753,7 @@ module.exports = {
     }
 };
 
-},{}],15:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 var CollisionHandler = require('./collision-handler.js'),
     Point = require('./point.js'),
     Dimension = require('./dimension.js'),
@@ -575,7 +763,8 @@ var CollisionHandler = require('./collision-handler.js'),
     Mouse = require('./mouse.js'),
     canvas = require('./canvas.js'),
     ctx = canvas.ctx,
-    Counter = require('./id-counter.js');
+    Counter = require('./id-counter.js'),
+    log = require('./log.js');
 
 var debug = false,
     heartbeat = false,
@@ -599,6 +788,7 @@ Mouse.on.down(function () {
 });
 
 module.exports = {
+    log: log,
     canvas: canvas,
     screenTap: tapCollisionSet,
     screen: function (name) {
@@ -733,7 +923,7 @@ module.exports = {
     }
 };
 
-},{"./canvas.js":7,"./circle.js":8,"./collidable.js":9,"./collision-handler.js":10,"./dimension.js":12,"./frame-counter.js":14,"./id-counter.js":16,"./mouse.js":19,"./point.js":20}],16:[function(require,module,exports){
+},{"./canvas.js":8,"./circle.js":9,"./collidable.js":10,"./collision-handler.js":11,"./dimension.js":13,"./frame-counter.js":15,"./id-counter.js":17,"./log.js":20,"./mouse.js":21,"./point.js":22}],17:[function(require,module,exports){
 var counter = 0;
 
 module.exports = {
@@ -746,7 +936,7 @@ module.exports = {
     }
 };
 
-},{}],17:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 module.exports = function (src) {
     var img = new Image();
     img.ready = false;
@@ -781,7 +971,7 @@ module.exports = function (src) {
     return img;
 };
 
-},{}],18:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 var nameMap = {
         alt: false,
         ctrl: false,
@@ -850,7 +1040,12 @@ module.exports = {
     }
 };
 
-},{}],19:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
+var Lumberjack = require('lumberjackjs');
+
+module.exports = Lumberjack();
+
+},{"lumberjackjs":6}],21:[function(require,module,exports){
 (function (global){
 var Point = require('./point.js'),
     Vector = require('./vector.js'),
@@ -947,7 +1142,7 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./canvas.js":7,"./point.js":20,"./vector.js":27}],20:[function(require,module,exports){
+},{"./canvas.js":8,"./point.js":22,"./vector.js":29}],22:[function(require,module,exports){
 function Point(x, y) {
     return {
         x: x || 0,
@@ -966,7 +1161,7 @@ function Point(x, y) {
 
 module.exports = Point;
 
-},{}],21:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 var Vector = require('./vector.js');
 
 function isEqual(my, other, tfactor, mfactor) {
@@ -1013,7 +1208,7 @@ function Polar(theta, mag) {
 
 module.exports = Polar;
 
-},{"./vector.js":27}],22:[function(require,module,exports){
+},{"./vector.js":29}],24:[function(require,module,exports){
 var Shape = require('./shape.js'),
     Point = require('./point.js'),
     Dimension = require('./dimension.js'),
@@ -1075,7 +1270,7 @@ module.exports = function (pos, size) {
     });
 };
 
-},{"./dimension.js":12,"./point.js":20,"./shape.js":24,"./vector.js":27}],23:[function(require,module,exports){
+},{"./dimension.js":13,"./point.js":22,"./shape.js":26,"./vector.js":29}],25:[function(require,module,exports){
 var BaseClass = require('baseclassjs'),
     EventHandler = require('./event-handler.js'),
     Counter = require('./id-counter.js');
@@ -1267,7 +1462,7 @@ module.exports = function (opts) {
     return self;
 };
 
-},{"./event-handler.js":13,"./id-counter.js":16,"baseclassjs":2}],24:[function(require,module,exports){
+},{"./event-handler.js":14,"./id-counter.js":17,"baseclassjs":2}],26:[function(require,module,exports){
 var BaseClass = require('baseclassjs'),
     Point = require('./point.js');
 
@@ -1297,7 +1492,7 @@ module.exports = function (opts) {
     });
 };
 
-},{"./point.js":20,"baseclassjs":2}],25:[function(require,module,exports){
+},{"./point.js":22,"baseclassjs":2}],27:[function(require,module,exports){
 var BaseClass = require('baseclassjs'),
     Collidable = require('./collidable.js'),
     Point = require('./point.js'),
@@ -1378,7 +1573,7 @@ module.exports = function (opts) {
     });
 };
 
-},{"./collidable.js":9,"./dimension.js":12,"./point.js":20,"baseclassjs":2}],26:[function(require,module,exports){
+},{"./collidable.js":10,"./dimension.js":13,"./point.js":22,"baseclassjs":2}],28:[function(require,module,exports){
 var createImage = require('./image.js'),
     cache = {};
 
@@ -1403,7 +1598,7 @@ module.exports = function (opts) {
     return img;
 };
 
-},{"./image.js":17}],27:[function(require,module,exports){
+},{"./image.js":18}],29:[function(require,module,exports){
 var Polar = require('./polar.js');
 
 /**
@@ -1454,19 +1649,17 @@ function Vector(x, y) {
 
 module.exports = Vector;
 
-},{"./polar.js":21}],28:[function(require,module,exports){
+},{"./polar.js":23}],30:[function(require,module,exports){
 var Dragon = require('dragonjs'),
     Dimension = Dragon.Dimension,
-    CollisionHandler = Dragon.CollisionHandler,
-    Game = Dragon.Game;
+    CollisionHandler = Dragon.CollisionHandler;
 
 module.exports = CollisionHandler({
     name: 'environ',
-    gridSize: Dimension(5, 5),
-    canvasSize: Game.canvas
+    gridSize: Dimension(5, 5)
 });
 
-},{"dragonjs":11}],29:[function(require,module,exports){
+},{"dragonjs":12}],31:[function(require,module,exports){
 var Dragon = require('dragonjs'),
     Game = Dragon.Game,
     mainScreen = require('./screens/main.js');
@@ -1476,7 +1669,7 @@ Game.run({
     debug: false
 });
 
-},{"./screens/main.js":30,"dragonjs":11}],30:[function(require,module,exports){
+},{"./screens/main.js":32,"dragonjs":12}],32:[function(require,module,exports){
 var Dragon = require('dragonjs'),
     Screen = Dragon.Screen,
     sky = require('../sprites/sky.js'),
@@ -1502,7 +1695,7 @@ module.exports = Screen({
     }
 });
 
-},{"../collisions/main.js":28,"../sprites/ground.js":31,"../sprites/runner.js":32,"../sprites/sky.js":33,"dragonjs":11}],31:[function(require,module,exports){
+},{"../collisions/main.js":30,"../sprites/ground.js":33,"../sprites/runner.js":34,"../sprites/sky.js":35,"dragonjs":12}],33:[function(require,module,exports){
 var Dragon = require('dragonjs'),
     canvas = Dragon.Game.canvas,
     Point = Dragon.Point,
@@ -1537,7 +1730,7 @@ module.exports = function (startx) {
     });
 };
 
-},{"../collisions/main.js":28,"dragonjs":11}],32:[function(require,module,exports){
+},{"../collisions/main.js":30,"dragonjs":12}],34:[function(require,module,exports){
 var Dragon = require('dragonjs'),
     Game = Dragon.Game,
     Mouse = Dragon.Mouse,
@@ -1586,13 +1779,6 @@ module.exports = Sprite({
         }),
         start: Point(1, 11),
         size: Dimension(64, 64),
-        /**
-         * An option for sinusoid frame cycle would be
-         * nice to have. Right now it assumes always
-         * modulo, but sometimes sinusoid is wanted instead:
-         * modulo: 0, 1, 2, 0, 1, 2, 0, 1, ...
-         * sinusoid: 0, 1, 2, 1, 0, 1, 2, 1, ...
-         */
         frames: 8,
         speed: 8
     }),
@@ -1600,8 +1786,8 @@ module.exports = Sprite({
     depth: 2,
     on: {
         'colliding/ground': function (other) {
-            this.speed.y = 0;
             this.pos.y = other.pos.y - this.mask.height;
+            this.speed.y = 0;
         },
         'collide/screendrag': function () {
             var pos = Mouse.offset.clone();
@@ -1621,7 +1807,7 @@ module.exports = Sprite({
     }
 });
 
-},{"../collisions/main.js":28,"dragonjs":11}],33:[function(require,module,exports){
+},{"../collisions/main.js":30,"dragonjs":12}],35:[function(require,module,exports){
 var Dragon = require('dragonjs'),
     Game = Dragon.Game,
     Point = Dragon.Point,
@@ -1643,4 +1829,4 @@ module.exports = Sprite({
     depth: 10
 });
 
-},{"../collisions/main.js":28,"dragonjs":11}]},{},[29]);
+},{"../collisions/main.js":30,"dragonjs":12}]},{},[31]);

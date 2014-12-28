@@ -46,13 +46,6 @@ module.exports = Sprite({
         }),
         start: Point(1, 11),
         size: Dimension(64, 64),
-        /**
-         * An option for sinusoid frame cycle would be
-         * nice to have. Right now it assumes always
-         * modulo, but sometimes sinusoid is wanted instead:
-         * modulo: 0, 1, 2, 0, 1, 2, 0, 1, ...
-         * sinusoid: 0, 1, 2, 1, 0, 1, 2, 1, ...
-         */
         frames: 8,
         speed: 8
     }),
@@ -60,8 +53,8 @@ module.exports = Sprite({
     depth: 2,
     on: {
         'colliding/ground': function (other) {
-            this.speed.y = 0;
             this.pos.y = other.pos.y - this.mask.height;
+            this.speed.y = 0;
         },
         'collide/screendrag': function () {
             var pos = Mouse.offset.clone();
