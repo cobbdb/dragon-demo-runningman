@@ -877,28 +877,28 @@ module.exports = {
             }));
         }
         dragonCollisions.update(Collidable({
-            name: 'edge/left',
+            name: 'screenedge/left',
             mask: Rectangle(
                 Point(-9, 0),
                 Dimension(10, canvas.height)
             )
         }));
         dragonCollisions.update(Collidable({
-            name: 'edge/top',
+            name: 'screenedge/top',
             mask: Rectangle(
                 Point(0, -9),
                 Dimension(canvas.width, 10)
             )
         }));
         dragonCollisions.update(Collidable({
-            name: 'edge/right',
+            name: 'screenedge/right',
             mask: Rectangle(
                 Point(canvas.width - 1, 0),
                 Dimension(10, canvas.height)
             )
         }));
         dragonCollisions.update(Collidable({
-            name: 'edge/bottom',
+            name: 'screenedge/bottom',
             mask: Rectangle(
                 Point(0, canvas.height - 1),
                 Dimension(canvas.width, 10)
@@ -1887,10 +1887,10 @@ module.exports = Sprite({
             this.useStrip('jump');
             this.strip.speed = 10;
         },
-        'collide/edge/left': function () {
+        'collide/screenedge/left': function () {
             direction = 1;
         },
-        'collide/edge/right': function () {
+        'collide/screenedge/right': function () {
             direction = -1;
         }
     }

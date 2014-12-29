@@ -93,10 +93,10 @@ module.exports = Sprite({
             this.useStrip('jump');
             this.strip.speed = 10;
         },
-        'collide/edge/left': function () {
+        'collide/screenedge/left': function () {
             direction = 1;
         },
-        'collide/edge/right': function () {
+        'collide/screenedge/right': function () {
             direction = -1;
         }
     }
