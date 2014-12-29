@@ -1557,7 +1557,6 @@ var BaseClass = require('baseclassjs'),
  */
 module.exports = function (opts) {
     var loaded = false,
-        loadQueue = 0,
         stripMap = opts.strips || {};
 
     return Collidable(opts).extend({
@@ -1600,10 +1599,10 @@ module.exports = function (opts) {
             );
         },
         load: function (cb) {
-            var name;
+            var name, loadQueue;
             if (!loaded) {
+                loadQueue = Object.keys(stripMap).length;
                 for (name in stripMap) {
-                    loadQueue += 1;
                     stripMap[name].load(function () {
                         loadQueue -= 1;
                         if (loadQueue === 0) {
