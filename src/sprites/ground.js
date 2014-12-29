@@ -21,12 +21,15 @@ module.exports = function (startx) {
             Dimension(81, 40)
         ),
         freemask: true,
-        strip: AnimationStrip({
-            sheet: SpriteSheet({
-                src: 'ground.png'
-            }),
-            size: Dimension(81, 79)
-        }),
+        strips: {
+            ground: AnimationStrip({
+                sheet: SpriteSheet({
+                    src: 'ground.png'
+                }),
+                size: Dimension(81, 79)
+            })
+        },
+        startingStrip: 'ground',
         pos: Point(startx, canvas.height - 79),
         depth: 8
     });

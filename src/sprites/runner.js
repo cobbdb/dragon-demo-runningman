@@ -9,13 +9,14 @@ var Dragon = require('dragonjs'),
     AnimationStrip = Dragon.AnimationStrip,
     SpriteSheet = Dragon.SpriteSheet,
     Polar = Dragon.Polar,
-    collisions = require('../collisions/main.js');
+    collisions = require('../collisions/main.js'),
+    direction = 1;
 
 module.exports = Sprite({
     name: 'runner',
     collisionSets: [
         collisions,
-        Game.screenTap
+        Game.collisions
     ],
     /**
      * Feels like size/Dimension is fine, but
@@ -33,28 +34,50 @@ module.exports = Sprite({
         Point(100, 104),
         Dimension(64, 60)
     ),
-    strip: AnimationStrip({
-        /**
-         * Should be {Object} sheets and allow
-         * useSheet(name) to swap between the
-         * different sheets. ex) running, swimming, etc.
-         * also maintain runner.sheet to fetch
-         * current sheet.
-         */
-        sheet: SpriteSheet({
-            src: 'orc-walk.png'
+    strips: {
+        'walk-right': AnimationStrip({
+            sheet: SpriteSheet({
+                src: 'orc-walk.png'
+            }),
+            start: Point(1, 11),
+            size: Dimension(64, 64),
+            frames: 8,
+            speed: 10
         }),
-        start: Point(1, 11),
-        size: Dimension(64, 64),
-        frames: 8,
-        speed: 8
-    }),
+        'walk-left': AnimationStrip({
+            sheet: SpriteSheet({
+                src: 'orc-walk.png'
+            }),
+            start: Point(1, 9),
+            size: Dimension(64, 64),
+            frames: 8,
+            speed: 10
+        }),
+        'jump': AnimationStrip({
+            sheet: SpriteSheet({
+                src: 'orc-walk.png'
+            }),
+            start: Point(3, 2),
+            size: Dimension(64, 64),
+            frames: 3,
+            sinusoid: true,
+            speed: 10
+        })
+    },
+    startingStrip: 'walk-right',
     pos: Point(100, 100),
     depth: 2,
     on: {
         'colliding/ground': function (other) {
             this.pos.y = other.pos.y - this.mask.height;
             this.speed.y = 0;
+            this.speed.x = 2 * direction;
+            this.base.update();
+            if (direction > 0) {
+                this.useStrip('walk-right');
+            } else {
+                this.useStrip('walk-left');
+            }
         },
         'collide/screendrag': function () {
             var pos = Mouse.offset.clone();
@@ -62,14 +85,25 @@ module.exports = Sprite({
             pos.y -= this.size.height / 2;
             this.move(pos.x, pos.y);
             this.speed.y = 0;
+            this.useStrip('jump');
+            this.strip.speed = 20;
         },
         'collide/screentap': function () {
             this.speed.y = -30;
+            this.useStrip('jump');
+            this.strip.speed = 10;
+        },
+        'collide/edge/left': function () {
+            direction = 1;
+        },
+        'collide/edge/right': function () {
+            direction = -1;
         }
     }
 }).extend({
     update: function () {
         this.speed.y += 3;
+        this.speed.x = 0;
         this.base.update();
     }
 });

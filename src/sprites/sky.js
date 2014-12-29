@@ -9,12 +9,15 @@ var Dragon = require('dragonjs'),
 
 module.exports = Sprite({
     name: 'sky',
-    strip: AnimationStrip({
-        sheet: SpriteSheet({
-            src: 'sky.png'
-        }),
-        size: Dimension(5, 400)
-    }),
+    strips: {
+        sky: AnimationStrip({
+            sheet: SpriteSheet({
+                src: 'sky.png'
+            }),
+            size: Dimension(5, 400)
+        })
+    },
+    startingStrip: 'sky',
     size: Game.canvas,
     depth: 10
 });
