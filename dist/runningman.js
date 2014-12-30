@@ -1104,12 +1104,24 @@ if (canvas.mobile) {
     endEventName = 'mouseup';
 }
 
+function getOffset(event) {
+    if (canvas.mobile) {
+        return Point(
+            event.touches[0].clientX,
+            event.touches[0].clientY
+        );
+    }
+    return Point(
+        event.offsetX,
+        event.offsetY
+    );
+}
+
 canvas.addEventListener(
     startEventName,
     function (event) {
         isDown = true;
-        current.x = event.offsetX;
-        current.y = event.offsetY;
+        current = getOffset(event);
         global.setTimeout(function () {
             if (isDown) {
                 isHolding = true;
@@ -1126,10 +1138,8 @@ document.addEventListener(
 canvas.addEventListener(
     moveEventName,
     function (event) {
-        last.x = current.x;
-        last.y = current.y;
-        current.x = event.offsetX;
-        current.y = event.offsetY;
+        last = current.clone();
+        current = getOffset(event);
 
         if (isDown) {
             shift.x = current.x - last.x;
