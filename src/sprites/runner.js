@@ -9,8 +9,7 @@ var Dragon = require('dragonjs'),
     AnimationStrip = Dragon.AnimationStrip,
     SpriteSheet = Dragon.SpriteSheet,
     Polar = Dragon.Polar,
-    collisions = require('../collisions/main.js'),
-    direction = 1;
+    collisions = require('../collisions/main.js');
 
 module.exports = Sprite({
     name: 'runner',
@@ -71,9 +70,9 @@ module.exports = Sprite({
         'colliding/ground': function (other) {
             this.pos.y = other.pos.y - this.mask.height;
             this.speed.y = 0;
-            this.speed.x = 2 * direction;
+            this.speed.x = 0.7 * this.direction;
             this.base.update();
-            if (direction > 0) {
+            if (this.direction > 0) {
                 this.useStrip('walk-right');
             } else {
                 this.useStrip('walk-left');
@@ -94,10 +93,10 @@ module.exports = Sprite({
             this.strip.speed = 10;
         },
         'collide/screenedge/left': function () {
-            direction = 1;
+            this.direction = 1;
         },
         'collide/screenedge/right': function () {
-            direction = -1;
+            this.direction = -1;
         }
     }
 }).extend({
@@ -105,5 +104,6 @@ module.exports = Sprite({
         this.speed.y += 3;
         this.speed.x = 0;
         this.base.update();
-    }
+    },
+    direction: 1
 });
