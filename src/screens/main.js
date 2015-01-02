@@ -20,7 +20,8 @@ module.exports = Screen({
         require('../sprites/runner.js'),
         require('../sprites/hills-near.js'),
         require('../sprites/hills-far.js'),
-        require('../sprites/sun.js')
+        require('../sprites/sun.js'),
+        require('../sprites/button-jump.js')
     ].concat(floor),
     one: {
         ready: function () {

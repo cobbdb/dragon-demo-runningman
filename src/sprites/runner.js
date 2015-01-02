@@ -9,7 +9,8 @@ var Dragon = require('dragonjs'),
     AnimationStrip = Dragon.AnimationStrip,
     SpriteSheet = Dragon.SpriteSheet,
     Polar = Dragon.Polar,
-    collisions = require('../collisions/main.js');
+    collisions = require('../collisions/main.js'),
+    walking = false;
 
 module.exports = Sprite({
     name: 'runner',
@@ -65,6 +66,7 @@ module.exports = Sprite({
             } else {
                 this.useStrip('walk-left');
             }
+            walking = true;
         },
         'colliding/screendrag': function () {
             var pos = Mouse.offset.clone();
@@ -76,9 +78,7 @@ module.exports = Sprite({
             this.strip.speed = 20;
         },
         'colliding/screentap': function () {
-            this.speed.y = -30;
-            this.useStrip('jump');
-            this.strip.speed = 10;
+            this.jump();
         },
         'collide/screenedge/left': function () {
             this.direction = 1;
@@ -93,5 +93,13 @@ module.exports = Sprite({
         this.speed.x = 0;
         this.base.update();
     },
-    direction: 1
+    direction: 1,
+    jump: function () {
+        if (walking) {
+            walking = false;
+            this.speed.y = -30;
+            this.useStrip('jump');
+            this.strip.speed = 10;
+        }
+    }
 });

@@ -13,7 +13,7 @@ var Dragon = require('dragonjs'),
 /**
  * @param {Number} startx
  */
-function Ground(startx) {
+module.exports = function (startx) {
     return Sprite({
         name: 'ground',
         collisionSets: [
@@ -39,14 +39,14 @@ function Ground(startx) {
         update: function () {
             var floor;
             if (runner.direction > 0) {
-                this.speed.x = -2;
+                this.speed.x = -3;
                 if (this.mask.right < 0) {
                     floor = Game.screen('main').floorSet;
                     this.pos.x = floor[floor.length - 1].mask.right;
                     floor.push(floor.shift());
                 }
             } else {
-                this.speed.x = 2;
+                this.speed.x = 3;
                 if (this.pos.x > canvas.width) {
                     floor = Game.screen('main').floorSet;
                     this.pos.x = floor[0].pos.x - this.size.width;
@@ -56,6 +56,4 @@ function Ground(startx) {
             this.base.update();
         }
     });
-}
-
-module.exports = Ground;
+};

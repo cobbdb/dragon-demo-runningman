@@ -27,12 +27,12 @@ module.exports = Sprite({
             if (this.pos.x < -this.trueSize().width) {
                 this.pos.x = canvas.width;
             }
-            this.speed.x = -3;
+            this.speed.x = -2;
         } else {
             if (this.pos.x > canvas.width) {
                 this.pos.x = -this.trueSize().width;
             }
-            this.speed.x = 3;
+            this.speed.x = 2;
         }
         this.base.update();
     }
