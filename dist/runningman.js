@@ -1849,8 +1849,6 @@ var Dragon = require('dragonjs'),
  * @param {Number} startx
  */
 function Ground(startx) {
-    var reproduced = false;
-
     return Sprite({
         name: 'ground',
         collisionSets: [
