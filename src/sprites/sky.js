@@ -19,5 +19,5 @@ module.exports = Sprite({
     },
     startingStrip: 'sky',
     size: Game.canvas,
-    depth: 10
+    depth: 20
 });

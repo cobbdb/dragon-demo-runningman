@@ -17,20 +17,8 @@ module.exports = Sprite({
         collisions,
         Game.collisions
     ],
-    /**
-     * Feels like size/Dimension is fine, but
-     * start/Point is awkward. Should be an
-     * offset/Point instead. Offset from the
-     * Sprite's starting point and that offset
-     * persists through calls to move() and shift().
-     * This becomes: Point(0, 4)
-     * Just add in Sprite's start to the masks
-     * position:
-     * mask.x += this.pos.x;
-     * mask.y += this.pos.y;
-     */
     mask: Rect(
-        Point(100, 104),
+        Point(),
         Dimension(64, 60)
     ),
     strips: {
@@ -78,7 +66,7 @@ module.exports = Sprite({
                 this.useStrip('walk-left');
             }
         },
-        'collide/screendrag': function () {
+        'colliding/screendrag': function () {
             var pos = Mouse.offset.clone();
             pos.x -= this.size.width / 2;
             pos.y -= this.size.height / 2;
@@ -87,7 +75,7 @@ module.exports = Sprite({
             this.useStrip('jump');
             this.strip.speed = 20;
         },
-        'collide/screentap': function () {
+        'colliding/screentap': function () {
             this.speed.y = -30;
             this.useStrip('jump');
             this.strip.speed = 10;

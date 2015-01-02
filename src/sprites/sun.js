@@ -8,31 +8,25 @@ var Dragon = require('dragonjs'),
     runner = require('./runner.js');
 
 module.exports = Sprite({
-    name: 'hills-near',
+    name: 'sun',
     strips: {
-        hills: AnimationStrip({
+        sun: AnimationStrip({
             sheet: SpriteSheet({
-                src: 'parallaxHill1.png'
+                src: 'sun.png'
             }),
-            size: Dimension(282, 59)
+            size: Dimension(248, 248)
         })
     },
-    startingStrip: 'hills',
-    scale: 1.6,
-    pos: Point(50, canvas.height - 170),
-    depth: 8
+    startingStrip: 'sun',
+    scale: 0.5,
+    pos: Point(170, 50),
+    depth: 10
 }).extend({
     update: function () {
         if (runner.direction > 0) {
-            if (this.pos.x < -this.trueSize().width) {
-                this.pos.x = canvas.width;
-            }
-            this.speed.x = -3;
+            this.speed.x = -0.2;
         } else {
-            if (this.pos.x > canvas.width) {
-                this.pos.x = -this.trueSize().width;
-            }
-            this.speed.x = 3;
+            this.speed.x = 0.2;
         }
         this.base.update();
     }

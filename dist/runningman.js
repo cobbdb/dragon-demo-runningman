@@ -413,8 +413,11 @@ var Shape = require('./shape.js'),
  * @param {Number} [rad] Defaults to 0.
  */
 module.exports = function (pos, rad) {
+    pos = pos || Point();
+    rad = rad || 0;
+
     return Shape({
-        pos: pos || Point(),
+        pos: pos,
         name: 'circle',
         intersects: {
             rectangle: function (rect) {
@@ -441,13 +444,36 @@ module.exports = function (pos, rad) {
             }
         }
     }).extend({
-        radius: rad || 0,
+        radius: rad,
+        width: rad * 2,
+        height: rad * 2,
+        top: pos.y - rad,
+        right: pos.x + rad,
+        bottom: pos.y + rad,
+        left: pos.x - rad,
         draw: function (ctx) {
             ctx.beginPath();
             ctx.lineWidth = 1;
             ctx.strokeStyle = 'rgba(250, 50, 50, 0.5)';
             ctx.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
             ctx.stroke();
+        },
+        move: function (x, y) {
+            this.x = x;
+            this.y = y;
+            this.top = y - this.radius;
+            this.right = x + this.radius;
+            this.bottom = y + this.radius;
+            this.left = x - this.radius;
+        },
+        resize: function (rad) {
+            this.radius = rad;
+            this.width = rad * 2;
+            this.height = rad * 2;
+            this.top = this.y - rad;
+            this.right = this.x + rad;
+            this.bottom = this.y + rad;
+            this.left = this.x - rad;
         }
     });
 };
@@ -456,7 +482,8 @@ module.exports = function (pos, rad) {
 var Counter = require('./id-counter.js'),
     EventHandler = require('./event-handler.js'),
     BaseClass = require('baseclassjs'),
-    Rectangle = require('./rectangle.js');
+    Rectangle = require('./rectangle.js'),
+    Point = require('./point.js');
 
 /**
  * @param {Shape} [opts.mask] Defaults to Rectangle.
@@ -466,21 +493,24 @@ var Counter = require('./id-counter.js'),
  * @param {Object} [opts.one] Dictionary of one-time events.
  */
 module.exports = function (opts) {
-    var instanceId = Counter.nextId,
-        activeCollisions = {},
+    var activeCollisions = {},
         collisionSets = [],
         updated = false;
 
     if (opts.collisionSets) {
-        collisionSets = collisionSets.concat(opts.collisionSets);
+        collisionSets = [].concat(opts.collisionSets);
     }
 
     return BaseClass({
-        id: instanceId,
+        id: Counter.nextId,
         name: opts.name,
         mask: opts.mask || Rectangle(),
+        offset: opts.offset || Point(),
         move: function (pos) {
-            this.mask.move(pos.x, pos.y);
+            this.mask.move(
+                pos.x + this.offset.x,
+                pos.y + this.offset.y
+            );
         },
         intersects: function (mask) {
             return this.mask.intersects(mask);
@@ -515,7 +545,7 @@ module.exports = function (opts) {
     );
 };
 
-},{"./event-handler.js":15,"./id-counter.js":18,"./rectangle.js":25,"baseclassjs":2}],11:[function(require,module,exports){
+},{"./event-handler.js":15,"./id-counter.js":18,"./point.js":23,"./rectangle.js":25,"baseclassjs":2}],11:[function(require,module,exports){
 var Rectangle = require('./rectangle.js'),
     Point = require('./point.js'),
     Dimension = require('./dimension.js'),
@@ -908,9 +938,6 @@ module.exports = {
             screen.stop();
         });
     },
-    /**
-     * Apply new data to the game.
-     */
     update: function () {
         if (Mouse.is.dragging) {
             masks.screendrag.move(Mouse.offset);
@@ -957,9 +984,6 @@ module.exports = {
             dragonCollisions.draw(ctx);
         }
     },
-    /**
-     * Cleanup before the next frame.
-     */
     teardown: function () {
         dragonCollisions.teardown();
         screens.forEach(function (screen) {
@@ -1318,12 +1342,23 @@ module.exports = function (pos, size) {
     }).extend({
         width: size.width || 0,
         height: size.height || 0,
+        top: pos.y || 0,
         right: pos.x + size.width || 0,
         bottom: pos.y + size.height || 0,
+        left: pos.x || 0,
         move: function (x, y) {
-            this.base.move(x, y);
+            this.x = x;
+            this.y = y;
+            this.top = y;
             this.right = x + this.width;
             this.bottom = y + this.height;
+            this.left = x;
+        },
+        resize: function (size) {
+            this.width = size.width;
+            this.height = size.height;
+            this.right = this.x + size.width;
+            this.bottom = this.y + size.height;
         },
         draw: function (ctx) {
             ctx.beginPath();
@@ -1546,10 +1581,8 @@ module.exports = function (opts) {
         x: pos.x,
         y: pos.y,
         name: opts.name,
-        move: function (x, y) {
-            this.x = x;
-            this.y = y;
-        },
+        move: BaseClass.Abstract,
+        resize: BaseClass.Abstract,
         intersects: function (other) {
             return intersectMap[other.name].call(this, other);
         },
@@ -1561,7 +1594,8 @@ module.exports = function (opts) {
 var BaseClass = require('baseclassjs'),
     Collidable = require('./collidable.js'),
     Point = require('./point.js'),
-    Dimension = require('./dimension.js');
+    Dimension = require('./dimension.js'),
+    Rectangle = require('./rectangle.js');
 
 /**
  * ##### Sprite
@@ -1586,7 +1620,16 @@ var BaseClass = require('baseclassjs'),
  */
 module.exports = function (opts) {
     var loaded = false,
-        stripMap = opts.strips || {};
+        stripMap = opts.strips || {},
+        pos = opts.pos || Point();
+
+    opts.mask = opts.mask || Rectangle();
+    opts.offset = Point(
+        opts.mask.x,
+        opts.mask.y
+    );
+    opts.mask.x = pos.x + opts.offset.x;
+    opts.mask.y = pos.y + opts.offset.y;
 
     return Collidable(opts).extend({
         ready: function () {
@@ -1604,11 +1647,7 @@ module.exports = function (opts) {
         getStrip: function (name) {
             return stripMap[name];
         },
-        pos: opts.pos || Point(),
-        /**
-         * scale and size should be coupled tighter.
-         * then remove trueSize altogether
-         */
+        pos: pos,
         scale: opts.scale || 1,
         size: opts.size || stripMap[opts.startingStrip].size,
         trueSize: function () {
@@ -1666,7 +1705,7 @@ module.exports = function (opts) {
     });
 };
 
-},{"./collidable.js":10,"./dimension.js":14,"./point.js":23,"baseclassjs":2}],29:[function(require,module,exports){
+},{"./collidable.js":10,"./dimension.js":14,"./point.js":23,"./rectangle.js":25,"baseclassjs":2}],29:[function(require,module,exports){
 var createImage = require('./image.js'),
     cache = {};
 
@@ -1756,39 +1795,44 @@ var Dragon = require('dragonjs'),
 
 Game.addScreens(mainScreen);
 Game.run({
-    debug: true
+    debug: false
 });
 
 },{"./screens/main.js":33,"dragonjs":12}],33:[function(require,module,exports){
 var Dragon = require('dragonjs'),
     Screen = Dragon.Screen,
-    sky = require('../sprites/sky.js'),
-    runner = require('../sprites/runner.js'),
+    canvas = Dragon.Game.canvas,
     Ground = require('../sprites/ground.js'),
-    hills1 = require('../sprites/hills-near.js'),
-    collisions = require('../collisions/main.js');
+    floor = [],
+    i, len;
+
+len = Math.ceil(canvas.width / 81) + 2;
+for (i = 0; i < len; i += 1) {
+    floor.push(
+        Ground(i * 81)
+    );
+}
 
 module.exports = Screen({
     name: 'main',
-    collisionSets: collisions,
+    collisionSets: require('../collisions/main.js'),
     spriteSet: [
-        sky,
-        runner,
-        Ground(0),
-        Ground(81),
-        Ground(162),
-        Ground(243),
-        Ground(324),
-        hills1
-    ],
+        require('../sprites/sky.js'),
+        require('../sprites/runner.js'),
+        require('../sprites/hills-near.js'),
+        require('../sprites/hills-far.js'),
+        require('../sprites/sun.js')
+    ].concat(floor),
     one: {
         ready: function () {
             this.start();
         }
     }
+}).extend({
+    floorSet: floor
 });
 
-},{"../collisions/main.js":31,"../sprites/ground.js":34,"../sprites/hills-near.js":35,"../sprites/runner.js":36,"../sprites/sky.js":37,"dragonjs":12}],34:[function(require,module,exports){
+},{"../collisions/main.js":31,"../sprites/ground.js":34,"../sprites/hills-far.js":35,"../sprites/hills-near.js":36,"../sprites/runner.js":37,"../sprites/sky.js":38,"../sprites/sun.js":39,"dragonjs":12}],34:[function(require,module,exports){
 var Dragon = require('dragonjs'),
     Game = Dragon.Game,
     canvas = Dragon.Game.canvas,
@@ -1805,6 +1849,8 @@ var Dragon = require('dragonjs'),
  * @param {Number} startx
  */
 function Ground(startx) {
+    var reproduced = false;
+
     return Sprite({
         name: 'ground',
         collisionSets: [
@@ -1812,10 +1858,9 @@ function Ground(startx) {
             Game.collisions
         ],
         mask: Rect(
-            Point(startx, canvas.height - 79),
+            Point(),
             Dimension(81, 40)
         ),
-        //freemask: true,
         strips: {
             ground: AnimationStrip({
                 sheet: SpriteSheet({
@@ -1826,28 +1871,23 @@ function Ground(startx) {
         },
         startingStrip: 'ground',
         pos: Point(startx, canvas.height - 79),
-        depth: 5,
-        on: {
-            'separate/screenedge/right': function (other) {
-                console.log('rightside', this.id, other.id);
-                if (runner.direction > 0) {
-                    Game.screen('main').addSprites({
-                        set: Ground(canvas.width)
-                    });
-                }
-            }
-        }
+        depth: 5
     }).extend({
         update: function () {
+            var floor;
             if (runner.direction > 0) {
                 this.speed.x = -2;
-                if (this.pos.x < -this.size.width) {
-                    Game.screen('main').removeSprite(this);
+                if (this.mask.right < 0) {
+                    floor = Game.screen('main').floorSet;
+                    this.pos.x = floor[floor.length - 1].mask.right;
+                    floor.push(floor.shift());
                 }
             } else {
                 this.speed.x = 2;
                 if (this.pos.x > canvas.width) {
-                    Game.screen('main').removeSprite(this);
+                    floor = Game.screen('main').floorSet;
+                    this.pos.x = floor[0].pos.x - this.size.width;
+                    floor.unshift(floor.pop());
                 }
             }
             this.base.update();
@@ -1857,7 +1897,48 @@ function Ground(startx) {
 
 module.exports = Ground;
 
-},{"../collisions/main.js":31,"./runner.js":36,"dragonjs":12}],35:[function(require,module,exports){
+},{"../collisions/main.js":31,"./runner.js":37,"dragonjs":12}],35:[function(require,module,exports){
+var Dragon = require('dragonjs'),
+    canvas = Dragon.Game.canvas,
+    Point = Dragon.Point,
+    Dimension = Dragon.Dimension,
+    Sprite = Dragon.Sprite,
+    AnimationStrip = Dragon.AnimationStrip,
+    SpriteSheet = Dragon.SpriteSheet,
+    runner = require('./runner.js');
+
+module.exports = Sprite({
+    name: 'hills-far',
+    strips: {
+        hills: AnimationStrip({
+            sheet: SpriteSheet({
+                src: 'parallaxHill2.png'
+            }),
+            size: Dimension(282, 59)
+        })
+    },
+    startingStrip: 'hills',
+    scale: 5,
+    pos: Point(100, canvas.height - 300),
+    depth: 9
+}).extend({
+    update: function () {
+        if (runner.direction > 0) {
+            if (this.pos.x < -this.trueSize().width) {
+                this.pos.x = canvas.width;
+            }
+            this.speed.x = -1;
+        } else {
+            if (this.pos.x > canvas.width) {
+                this.pos.x = -this.trueSize().width;
+            }
+            this.speed.x = 1;
+        }
+        this.base.update();
+    }
+});
+
+},{"./runner.js":37,"dragonjs":12}],36:[function(require,module,exports){
 var Dragon = require('dragonjs'),
     canvas = Dragon.Game.canvas,
     Point = Dragon.Point,
@@ -1878,8 +1959,8 @@ module.exports = Sprite({
         })
     },
     startingStrip: 'hills',
-    scale: 2,
-    pos: Point(50, canvas.height - 190),
+    scale: 1.6,
+    pos: Point(50, canvas.height - 170),
     depth: 8
 }).extend({
     update: function () {
@@ -1898,7 +1979,7 @@ module.exports = Sprite({
     }
 });
 
-},{"./runner.js":36,"dragonjs":12}],36:[function(require,module,exports){
+},{"./runner.js":37,"dragonjs":12}],37:[function(require,module,exports){
 var Dragon = require('dragonjs'),
     Game = Dragon.Game,
     Mouse = Dragon.Mouse,
@@ -1918,20 +1999,8 @@ module.exports = Sprite({
         collisions,
         Game.collisions
     ],
-    /**
-     * Feels like size/Dimension is fine, but
-     * start/Point is awkward. Should be an
-     * offset/Point instead. Offset from the
-     * Sprite's starting point and that offset
-     * persists through calls to move() and shift().
-     * This becomes: Point(0, 4)
-     * Just add in Sprite's start to the masks
-     * position:
-     * mask.x += this.pos.x;
-     * mask.y += this.pos.y;
-     */
     mask: Rect(
-        Point(100, 104),
+        Point(),
         Dimension(64, 60)
     ),
     strips: {
@@ -1979,7 +2048,7 @@ module.exports = Sprite({
                 this.useStrip('walk-left');
             }
         },
-        'collide/screendrag': function () {
+        'colliding/screendrag': function () {
             var pos = Mouse.offset.clone();
             pos.x -= this.size.width / 2;
             pos.y -= this.size.height / 2;
@@ -1988,7 +2057,7 @@ module.exports = Sprite({
             this.useStrip('jump');
             this.strip.speed = 20;
         },
-        'collide/screentap': function () {
+        'colliding/screentap': function () {
             this.speed.y = -30;
             this.useStrip('jump');
             this.strip.speed = 10;
@@ -2009,7 +2078,7 @@ module.exports = Sprite({
     direction: 1
 });
 
-},{"../collisions/main.js":31,"dragonjs":12}],37:[function(require,module,exports){
+},{"../collisions/main.js":31,"dragonjs":12}],38:[function(require,module,exports){
 var Dragon = require('dragonjs'),
     Game = Dragon.Game,
     Point = Dragon.Point,
@@ -2031,7 +2100,42 @@ module.exports = Sprite({
     },
     startingStrip: 'sky',
     size: Game.canvas,
-    depth: 10
+    depth: 20
 });
 
-},{"../collisions/main.js":31,"dragonjs":12}]},{},[32]);
+},{"../collisions/main.js":31,"dragonjs":12}],39:[function(require,module,exports){
+var Dragon = require('dragonjs'),
+    canvas = Dragon.Game.canvas,
+    Point = Dragon.Point,
+    Dimension = Dragon.Dimension,
+    Sprite = Dragon.Sprite,
+    AnimationStrip = Dragon.AnimationStrip,
+    SpriteSheet = Dragon.SpriteSheet,
+    runner = require('./runner.js');
+
+module.exports = Sprite({
+    name: 'sun',
+    strips: {
+        sun: AnimationStrip({
+            sheet: SpriteSheet({
+                src: 'sun.png'
+            }),
+            size: Dimension(248, 248)
+        })
+    },
+    startingStrip: 'sun',
+    scale: 0.5,
+    pos: Point(170, 50),
+    depth: 10
+}).extend({
+    update: function () {
+        if (runner.direction > 0) {
+            this.speed.x = -0.2;
+        } else {
+            this.speed.x = 0.2;
+        }
+        this.base.update();
+    }
+});
+
+},{"./runner.js":37,"dragonjs":12}]},{},[32]);

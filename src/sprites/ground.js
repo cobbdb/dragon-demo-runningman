@@ -14,6 +14,8 @@ var Dragon = require('dragonjs'),
  * @param {Number} startx
  */
 function Ground(startx) {
+    var reproduced = false;
+
     return Sprite({
         name: 'ground',
         collisionSets: [
@@ -21,10 +23,9 @@ function Ground(startx) {
             Game.collisions
         ],
         mask: Rect(
-            Point(startx, canvas.height - 79),
+            Point(),
             Dimension(81, 40)
         ),
-        //freemask: true,
         strips: {
             ground: AnimationStrip({
                 sheet: SpriteSheet({
@@ -35,28 +36,23 @@ function Ground(startx) {
         },
         startingStrip: 'ground',
         pos: Point(startx, canvas.height - 79),
-        depth: 5,
-        on: {
-            'separate/screenedge/right': function (other) {
-                console.log('rightside', this.id, other.id);
-                if (runner.direction > 0) {
-                    Game.screen('main').addSprites({
-                        set: Ground(canvas.width)
-                    });
-                }
-            }
-        }
+        depth: 5
     }).extend({
         update: function () {
+            var floor;
             if (runner.direction > 0) {
                 this.speed.x = -2;
-                if (this.pos.x < -this.size.width) {
-                    Game.screen('main').removeSprite(this);
+                if (this.mask.right < 0) {
+                    floor = Game.screen('main').floorSet;
+                    this.pos.x = floor[floor.length - 1].mask.right;
+                    floor.push(floor.shift());
                 }
             } else {
                 this.speed.x = 2;
                 if (this.pos.x > canvas.width) {
-                    Game.screen('main').removeSprite(this);
+                    floor = Game.screen('main').floorSet;
+                    this.pos.x = floor[0].pos.x - this.size.width;
+                    floor.unshift(floor.pop());
                 }
             }
             this.base.update();
