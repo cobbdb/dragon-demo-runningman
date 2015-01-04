@@ -1,14 +1,11 @@
 var Dragon = require('dragonjs'),
-    Game = Dragon.Game,
     Mouse = Dragon.Mouse,
-    KeyDown = Dragon.Keyboard,
     Point = Dragon.Point,
     Dimension = Dragon.Dimension,
     Rect = Dragon.Rectangle,
     Sprite = Dragon.Sprite,
     AnimationStrip = Dragon.AnimationStrip,
     SpriteSheet = Dragon.SpriteSheet,
-    Polar = Dragon.Polar,
     collisions = require('../collisions/main.js'),
     walking = false;
 
@@ -16,7 +13,7 @@ module.exports = Sprite({
     name: 'runner',
     collisionSets: [
         collisions,
-        Game.collisions
+        Dragon.collisions
     ],
     mask: Rect(
         Point(),

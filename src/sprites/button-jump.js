@@ -11,7 +11,7 @@ var Dragon = require('dragonjs'),
 module.exports = Sprite({
     name: 'button-jump',
     collisionSets: [
-        Game.collisions
+        Dragon.collisions
     ],
     mask: Rect(
         Point(),

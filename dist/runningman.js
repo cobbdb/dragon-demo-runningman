@@ -381,28 +381,32 @@ module.exports = function (opts) {
     };
 };
 
-},{"./dimension.js":14,"./log.js":21,"./point.js":23}],8:[function(require,module,exports){
-var canvas = document.createElement('canvas');
+},{"./dimension.js":15,"./log.js":23,"./point.js":25}],8:[function(require,module,exports){
+var mobile = require('./detect-mobile.js'),
+    canvas = document.createElement('canvas');
 
-if (window.innerWidth >= 500) {
-    // Large screen devices.
-    canvas.width = 320;
-    canvas.height = 480;
-    canvas.style.border = '1px solid #000';
-    canvas.mobile = false;
-} else {
-    // Mobile devices.
+if (mobile) {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
     document.body.style.height = canvas.height + 'px';
-    canvas.mobile = true;
+} else {
+    if (localStorage.drago === 'landscape') {
+        canvas.width = 480;
+        canvas.height = 320;
+    } else {
+        canvas.width = 320;
+        canvas.height = 480;
+    }
+    canvas.style.border = '1px solid #000';
 }
-document.body.appendChild(canvas);
 
+document.body.appendChild(canvas);
+canvas.mobile = mobile;
 canvas.ctx = canvas.getContext('2d');
+
 module.exports = canvas;
 
-},{}],9:[function(require,module,exports){
+},{"./detect-mobile.js":14}],9:[function(require,module,exports){
 var Shape = require('./shape.js'),
     Vector = require('./vector.js'),
     Point = require('./point.js'),
@@ -478,7 +482,7 @@ module.exports = function (pos, rad) {
     });
 };
 
-},{"./dimension.js":14,"./point.js":23,"./shape.js":27,"./vector.js":30}],10:[function(require,module,exports){
+},{"./dimension.js":15,"./point.js":25,"./shape.js":29,"./vector.js":32}],10:[function(require,module,exports){
 var Counter = require('./id-counter.js'),
     EventHandler = require('./event-handler.js'),
     BaseClass = require('baseclassjs'),
@@ -533,6 +537,9 @@ module.exports = function (opts) {
         removeCollision: function (id) {
             activeCollisions[id] = false;
         },
+        clearCollisions: function () {
+            activeCollisions = {};
+        },
         isCollidingWith: function (id) {
             // Return type is always boolean.
             return activeCollisions[id] || false;
@@ -545,7 +552,7 @@ module.exports = function (opts) {
     );
 };
 
-},{"./event-handler.js":15,"./id-counter.js":18,"./point.js":23,"./rectangle.js":25,"baseclassjs":2}],11:[function(require,module,exports){
+},{"./event-handler.js":17,"./id-counter.js":20,"./point.js":25,"./rectangle.js":27,"baseclassjs":2}],11:[function(require,module,exports){
 var Rectangle = require('./rectangle.js'),
     Point = require('./point.js'),
     Dimension = require('./dimension.js'),
@@ -653,7 +660,7 @@ module.exports = function (opts) {
     };
 };
 
-},{"./canvas.js":8,"./dimension.js":14,"./point.js":23,"./rectangle.js":25}],12:[function(require,module,exports){
+},{"./canvas.js":8,"./dimension.js":15,"./point.js":25,"./rectangle.js":27}],12:[function(require,module,exports){
 module.exports = {
     Shape: require('./shape.js'),
     Circle: require('./circle.js'),
@@ -673,6 +680,7 @@ module.exports = {
     SpriteSheet: require('./spritesheet.js'),
     AnimationStrip: require('./animation-strip.js'),
     CollisionHandler: require('./collision-handler.js'),
+    collisions: require('./dragon-collisions.js'),
 
     Game: require('./game.js'),
     Screen: require('./screen.js'),
@@ -680,7 +688,7 @@ module.exports = {
     Sprite: require('./sprite.js')
 };
 
-},{"./animation-strip.js":7,"./circle.js":9,"./collidable.js":10,"./collision-handler.js":11,"./dimension.js":14,"./event-handler.js":15,"./frame-counter.js":16,"./game.js":17,"./id-counter.js":18,"./keyboard.js":20,"./mouse.js":22,"./point.js":23,"./polar.js":24,"./rectangle.js":25,"./screen.js":26,"./shape.js":27,"./sprite.js":28,"./spritesheet.js":29,"./vector.js":30}],13:[function(require,module,exports){
+},{"./animation-strip.js":7,"./circle.js":9,"./collidable.js":10,"./collision-handler.js":11,"./dimension.js":15,"./dragon-collisions.js":16,"./event-handler.js":17,"./frame-counter.js":18,"./game.js":19,"./id-counter.js":20,"./keyboard.js":22,"./mouse.js":24,"./point.js":25,"./polar.js":26,"./rectangle.js":27,"./screen.js":28,"./shape.js":29,"./sprite.js":30,"./spritesheet.js":31,"./vector.js":32}],13:[function(require,module,exports){
 module.exports = {
     show: {
         fps: function () {}
@@ -688,6 +696,12 @@ module.exports = {
 };
 
 },{}],14:[function(require,module,exports){
+/**
+ * @see https://hacks.mozilla.org/2013/04/detecting-touch-its-the-why-not-the-how/
+ */
+module.exports = 'ontouchstart' in window;
+
+},{}],15:[function(require,module,exports){
 function Dimension(w, h) {
     return {
         width: w || 0,
@@ -712,7 +726,18 @@ function Dimension(w, h) {
 
 module.exports = Dimension;
 
-},{}],15:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
+var CollisionHandler = require('./collision-handler.js'),
+    Dimension = require('./dimension.js'),
+    canvas = require('./canvas.js');
+
+module.exports = CollisionHandler({
+    name: 'dragon',
+    gridSize: Dimension(4, 4),
+    canvasSize: canvas
+});
+
+},{"./canvas.js":8,"./collision-handler.js":11,"./dimension.js":15}],17:[function(require,module,exports){
 var BaseClass = require('baseclassjs');
 
 /**
@@ -766,7 +791,7 @@ module.exports = function (opts) {
     });
 };
 
-},{"baseclassjs":2}],16:[function(require,module,exports){
+},{"baseclassjs":2}],18:[function(require,module,exports){
 var timeSinceLastSecond = frameCountThisSecond = frameRate = 0,
     timeLastFrame = new Date().getTime();
 
@@ -795,7 +820,7 @@ module.exports = {
     }
 };
 
-},{}],17:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 var CollisionHandler = require('./collision-handler.js'),
     Point = require('./point.js'),
     Dimension = require('./dimension.js'),
@@ -808,6 +833,7 @@ var CollisionHandler = require('./collision-handler.js'),
     ctx = canvas.ctx,
     Counter = require('./id-counter.js'),
     log = require('./log.js'),
+    dragonCollisions = require('./dragon-collisions.js'),
     debug = false,
     heartbeat = false,
     throttle = 30,
@@ -815,11 +841,6 @@ var CollisionHandler = require('./collision-handler.js'),
     screenMap = {},
     screensToAdd = [],
     screenRemoved = false,
-    dragonCollisions = CollisionHandler({
-        name: 'dragon',
-        gridSize: Dimension(4, 4),
-        canvasSize: canvas
-    }),
     loadQueue = {},
     masks = {
         screentap: Collidable({
@@ -875,7 +896,6 @@ module.exports = {
     log: log,
     canvas: canvas,
     debug: require('./debug-console.js'),
-    collisions: dragonCollisions,
     screen: function (name) {
         return screenMap[name];
     },
@@ -907,6 +927,11 @@ module.exports = {
         screen.removed = true;
         screenRemoved = true;
     },
+    /**
+     * @param {Boolean} [opts.debug] Defaults to false.
+     * @param {Number} [opts.speed]
+     * @param {String} [opts.orientation] Defaults to portrait.
+     */
     run: function (opts) {
         var speed,
             that = this;
@@ -1000,7 +1025,7 @@ module.exports = {
     }
 };
 
-},{"./canvas.js":8,"./circle.js":9,"./collidable.js":10,"./collision-handler.js":11,"./debug-console.js":13,"./dimension.js":14,"./frame-counter.js":16,"./id-counter.js":18,"./log.js":21,"./mouse.js":22,"./point.js":23,"./rectangle.js":25}],18:[function(require,module,exports){
+},{"./canvas.js":8,"./circle.js":9,"./collidable.js":10,"./collision-handler.js":11,"./debug-console.js":13,"./dimension.js":15,"./dragon-collisions.js":16,"./frame-counter.js":18,"./id-counter.js":20,"./log.js":23,"./mouse.js":24,"./point.js":25,"./rectangle.js":27}],20:[function(require,module,exports){
 var counter = 0;
 
 module.exports = {
@@ -1013,7 +1038,7 @@ module.exports = {
     }
 };
 
-},{}],19:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 module.exports = function (src) {
     var img = new Image();
     img.ready = false;
@@ -1048,7 +1073,7 @@ module.exports = function (src) {
     return img;
 };
 
-},{}],20:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 var nameMap = {
         alt: false,
         ctrl: false,
@@ -1117,12 +1142,12 @@ module.exports = {
     }
 };
 
-},{}],21:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 var Lumberjack = require('lumberjackjs');
 
 module.exports = Lumberjack();
 
-},{"lumberjackjs":6}],22:[function(require,module,exports){
+},{"lumberjackjs":6}],24:[function(require,module,exports){
 (function (global){
 var Point = require('./point.js'),
     Vector = require('./vector.js'),
@@ -1231,7 +1256,7 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./canvas.js":8,"./point.js":23,"./vector.js":30}],23:[function(require,module,exports){
+},{"./canvas.js":8,"./point.js":25,"./vector.js":32}],25:[function(require,module,exports){
 function Point(x, y) {
     return {
         x: x || 0,
@@ -1250,7 +1275,7 @@ function Point(x, y) {
 
 module.exports = Point;
 
-},{}],24:[function(require,module,exports){
+},{}],26:[function(require,module,exports){
 var Vector = require('./vector.js');
 
 function isEqual(my, other, tfactor, mfactor) {
@@ -1297,7 +1322,7 @@ function Polar(theta, mag) {
 
 module.exports = Polar;
 
-},{"./vector.js":30}],25:[function(require,module,exports){
+},{"./vector.js":32}],27:[function(require,module,exports){
 var Shape = require('./shape.js'),
     Point = require('./point.js'),
     Dimension = require('./dimension.js'),
@@ -1370,7 +1395,7 @@ module.exports = function (pos, size) {
     });
 };
 
-},{"./dimension.js":14,"./point.js":23,"./shape.js":27,"./vector.js":30}],26:[function(require,module,exports){
+},{"./dimension.js":15,"./point.js":25,"./shape.js":29,"./vector.js":32}],28:[function(require,module,exports){
 var BaseClass = require('baseclassjs'),
     EventHandler = require('./event-handler.js'),
     Counter = require('./id-counter.js');
@@ -1562,7 +1587,7 @@ module.exports = function (opts) {
     return self;
 };
 
-},{"./event-handler.js":15,"./id-counter.js":18,"baseclassjs":2}],27:[function(require,module,exports){
+},{"./event-handler.js":17,"./id-counter.js":20,"baseclassjs":2}],29:[function(require,module,exports){
 var BaseClass = require('baseclassjs'),
     Point = require('./point.js');
 
@@ -1590,7 +1615,7 @@ module.exports = function (opts) {
     });
 };
 
-},{"./point.js":23,"baseclassjs":2}],28:[function(require,module,exports){
+},{"./point.js":25,"baseclassjs":2}],30:[function(require,module,exports){
 var BaseClass = require('baseclassjs'),
     Collidable = require('./collidable.js'),
     Point = require('./point.js'),
@@ -1705,7 +1730,7 @@ module.exports = function (opts) {
     });
 };
 
-},{"./collidable.js":10,"./dimension.js":14,"./point.js":23,"./rectangle.js":25,"baseclassjs":2}],29:[function(require,module,exports){
+},{"./collidable.js":10,"./dimension.js":15,"./point.js":25,"./rectangle.js":27,"baseclassjs":2}],31:[function(require,module,exports){
 var createImage = require('./image.js'),
     cache = {};
 
@@ -1730,7 +1755,7 @@ module.exports = function (opts) {
     return img;
 };
 
-},{"./image.js":19}],30:[function(require,module,exports){
+},{"./image.js":21}],32:[function(require,module,exports){
 var Polar = require('./polar.js');
 
 /**
@@ -1778,667 +1803,7 @@ function Vector(x, y) {
 
 module.exports = Vector;
 
-},{"./polar.js":24}],31:[function(require,module,exports){
-var isNode = require('is-node');
-var nodeRequire = require;
-
-module.exports = isNode ? nodeRequire('./lib/node') : require('./lib/browser');
-
-},{"./lib/browser":32,"is-node":33}],32:[function(require,module,exports){
-module.exports = require('jsonp');
-
-},{"jsonp":34}],33:[function(require,module,exports){
-(function (process){
-module.exports = !!(typeof process != 'undefined' && process.versions && process.versions.node);
-
-}).call(this,require('_process'))
-},{"_process":38}],34:[function(require,module,exports){
-/**
- * Module dependencies
- */
-
-var debug = require('debug')('jsonp');
-
-/**
- * Module exports.
- */
-
-module.exports = jsonp;
-
-/**
- * Callback index.
- */
-
-var count = 0;
-
-/**
- * Noop function.
- */
-
-function noop(){}
-
-/**
- * JSONP handler
- *
- * Options:
- *  - param {String} qs parameter (`callback`)
- *  - timeout {Number} how long after a timeout error is emitted (`60000`)
- *
- * @param {String} url
- * @param {Object|Function} optional options / callback
- * @param {Function} optional callback
- */
-
-function jsonp(url, opts, fn){
-  if ('function' == typeof opts) {
-    fn = opts;
-    opts = {};
-  }
-  if (!opts) opts = {};
-
-  var prefix = opts.prefix || '__jp';
-  var param = opts.param || 'callback';
-  var timeout = null != opts.timeout ? opts.timeout : 60000;
-  var enc = encodeURIComponent;
-  var target = document.getElementsByTagName('script')[0] || document.head;
-  var script;
-  var timer;
-
-  // generate a unique id for this request
-  var id = prefix + (count++);
-
-  if (timeout) {
-    timer = setTimeout(function(){
-      cleanup();
-      if (fn) fn(new Error('Timeout'));
-    }, timeout);
-  }
-
-  function cleanup(){
-    script.parentNode.removeChild(script);
-    window[id] = noop;
-  }
-
-  window[id] = function(data){
-    debug('jsonp got', data);
-    if (timer) clearTimeout(timer);
-    cleanup();
-    if (fn) fn(null, data);
-  };
-
-  // add qs component
-  url += (~url.indexOf('?') ? '&' : '?') + param + '=' + enc(id);
-  url = url.replace('?&', '?');
-
-  debug('jsonp req "%s"', url);
-
-  // create script
-  script = document.createElement('script');
-  script.src = url;
-  target.parentNode.insertBefore(script, target);
-}
-
-},{"debug":35}],35:[function(require,module,exports){
-
-/**
- * This is the web browser implementation of `debug()`.
- *
- * Expose `debug()` as the module.
- */
-
-exports = module.exports = require('./debug');
-exports.log = log;
-exports.formatArgs = formatArgs;
-exports.save = save;
-exports.load = load;
-exports.useColors = useColors;
-
-/**
- * Use chrome.storage.local if we are in an app
- */
-
-var storage;
-
-if (typeof chrome !== 'undefined' && typeof chrome.storage !== 'undefined')
-  storage = chrome.storage.local;
-else
-  storage = window.localStorage;
-
-/**
- * Colors.
- */
-
-exports.colors = [
-  'lightseagreen',
-  'forestgreen',
-  'goldenrod',
-  'dodgerblue',
-  'darkorchid',
-  'crimson'
-];
-
-/**
- * Currently only WebKit-based Web Inspectors, Firefox >= v31,
- * and the Firebug extension (any Firefox version) are known
- * to support "%c" CSS customizations.
- *
- * TODO: add a `localStorage` variable to explicitly enable/disable colors
- */
-
-function useColors() {
-  // is webkit? http://stackoverflow.com/a/16459606/376773
-  return ('WebkitAppearance' in document.documentElement.style) ||
-    // is firebug? http://stackoverflow.com/a/398120/376773
-    (window.console && (console.firebug || (console.exception && console.table))) ||
-    // is firefox >= v31?
-    // https://developer.mozilla.org/en-US/docs/Tools/Web_Console#Styling_messages
-    (navigator.userAgent.toLowerCase().match(/firefox\/(\d+)/) && parseInt(RegExp.$1, 10) >= 31);
-}
-
-/**
- * Map %j to `JSON.stringify()`, since no Web Inspectors do that by default.
- */
-
-exports.formatters.j = function(v) {
-  return JSON.stringify(v);
-};
-
-
-/**
- * Colorize log arguments if enabled.
- *
- * @api public
- */
-
-function formatArgs() {
-  var args = arguments;
-  var useColors = this.useColors;
-
-  args[0] = (useColors ? '%c' : '')
-    + this.namespace
-    + (useColors ? ' %c' : ' ')
-    + args[0]
-    + (useColors ? '%c ' : ' ')
-    + '+' + exports.humanize(this.diff);
-
-  if (!useColors) return args;
-
-  var c = 'color: ' + this.color;
-  args = [args[0], c, 'color: inherit'].concat(Array.prototype.slice.call(args, 1));
-
-  // the final "%c" is somewhat tricky, because there could be other
-  // arguments passed either before or after the %c, so we need to
-  // figure out the correct index to insert the CSS into
-  var index = 0;
-  var lastC = 0;
-  args[0].replace(/%[a-z%]/g, function(match) {
-    if ('%%' === match) return;
-    index++;
-    if ('%c' === match) {
-      // we only are interested in the *last* %c
-      // (the user may have provided their own)
-      lastC = index;
-    }
-  });
-
-  args.splice(lastC, 0, c);
-  return args;
-}
-
-/**
- * Invokes `console.log()` when available.
- * No-op when `console.log` is not a "function".
- *
- * @api public
- */
-
-function log() {
-  // this hackery is required for IE8/9, where
-  // the `console.log` function doesn't have 'apply'
-  return 'object' === typeof console
-    && console.log
-    && Function.prototype.apply.call(console.log, console, arguments);
-}
-
-/**
- * Save `namespaces`.
- *
- * @param {String} namespaces
- * @api private
- */
-
-function save(namespaces) {
-  try {
-    if (null == namespaces) {
-      storage.removeItem('debug');
-    } else {
-      storage.debug = namespaces;
-    }
-  } catch(e) {}
-}
-
-/**
- * Load `namespaces`.
- *
- * @return {String} returns the previously persisted debug modes
- * @api private
- */
-
-function load() {
-  var r;
-  try {
-    r = storage.debug;
-  } catch(e) {}
-  return r;
-}
-
-/**
- * Enable namespaces listed in `localStorage.debug` initially.
- */
-
-exports.enable(load());
-
-},{"./debug":36}],36:[function(require,module,exports){
-
-/**
- * This is the common logic for both the Node.js and web browser
- * implementations of `debug()`.
- *
- * Expose `debug()` as the module.
- */
-
-exports = module.exports = debug;
-exports.coerce = coerce;
-exports.disable = disable;
-exports.enable = enable;
-exports.enabled = enabled;
-exports.humanize = require('ms');
-
-/**
- * The currently active debug mode names, and names to skip.
- */
-
-exports.names = [];
-exports.skips = [];
-
-/**
- * Map of special "%n" handling functions, for the debug "format" argument.
- *
- * Valid key names are a single, lowercased letter, i.e. "n".
- */
-
-exports.formatters = {};
-
-/**
- * Previously assigned color.
- */
-
-var prevColor = 0;
-
-/**
- * Previous log timestamp.
- */
-
-var prevTime;
-
-/**
- * Select a color.
- *
- * @return {Number}
- * @api private
- */
-
-function selectColor() {
-  return exports.colors[prevColor++ % exports.colors.length];
-}
-
-/**
- * Create a debugger with the given `namespace`.
- *
- * @param {String} namespace
- * @return {Function}
- * @api public
- */
-
-function debug(namespace) {
-
-  // define the `disabled` version
-  function disabled() {
-  }
-  disabled.enabled = false;
-
-  // define the `enabled` version
-  function enabled() {
-
-    var self = enabled;
-
-    // set `diff` timestamp
-    var curr = +new Date();
-    var ms = curr - (prevTime || curr);
-    self.diff = ms;
-    self.prev = prevTime;
-    self.curr = curr;
-    prevTime = curr;
-
-    // add the `color` if not set
-    if (null == self.useColors) self.useColors = exports.useColors();
-    if (null == self.color && self.useColors) self.color = selectColor();
-
-    var args = Array.prototype.slice.call(arguments);
-
-    args[0] = exports.coerce(args[0]);
-
-    if ('string' !== typeof args[0]) {
-      // anything else let's inspect with %o
-      args = ['%o'].concat(args);
-    }
-
-    // apply any `formatters` transformations
-    var index = 0;
-    args[0] = args[0].replace(/%([a-z%])/g, function(match, format) {
-      // if we encounter an escaped % then don't increase the array index
-      if (match === '%%') return match;
-      index++;
-      var formatter = exports.formatters[format];
-      if ('function' === typeof formatter) {
-        var val = args[index];
-        match = formatter.call(self, val);
-
-        // now we need to remove `args[index]` since it's inlined in the `format`
-        args.splice(index, 1);
-        index--;
-      }
-      return match;
-    });
-
-    if ('function' === typeof exports.formatArgs) {
-      args = exports.formatArgs.apply(self, args);
-    }
-    var logFn = enabled.log || exports.log || console.log.bind(console);
-    logFn.apply(self, args);
-  }
-  enabled.enabled = true;
-
-  var fn = exports.enabled(namespace) ? enabled : disabled;
-
-  fn.namespace = namespace;
-
-  return fn;
-}
-
-/**
- * Enables a debug mode by namespaces. This can include modes
- * separated by a colon and wildcards.
- *
- * @param {String} namespaces
- * @api public
- */
-
-function enable(namespaces) {
-  exports.save(namespaces);
-
-  var split = (namespaces || '').split(/[\s,]+/);
-  var len = split.length;
-
-  for (var i = 0; i < len; i++) {
-    if (!split[i]) continue; // ignore empty strings
-    namespaces = split[i].replace(/\*/g, '.*?');
-    if (namespaces[0] === '-') {
-      exports.skips.push(new RegExp('^' + namespaces.substr(1) + '$'));
-    } else {
-      exports.names.push(new RegExp('^' + namespaces + '$'));
-    }
-  }
-}
-
-/**
- * Disable debug output.
- *
- * @api public
- */
-
-function disable() {
-  exports.enable('');
-}
-
-/**
- * Returns true if the given mode name is enabled, false otherwise.
- *
- * @param {String} name
- * @return {Boolean}
- * @api public
- */
-
-function enabled(name) {
-  var i, len;
-  for (i = 0, len = exports.skips.length; i < len; i++) {
-    if (exports.skips[i].test(name)) {
-      return false;
-    }
-  }
-  for (i = 0, len = exports.names.length; i < len; i++) {
-    if (exports.names[i].test(name)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-/**
- * Coerce `val`.
- *
- * @param {Mixed} val
- * @return {Mixed}
- * @api private
- */
-
-function coerce(val) {
-  if (val instanceof Error) return val.stack || val.message;
-  return val;
-}
-
-},{"ms":37}],37:[function(require,module,exports){
-/**
- * Helpers.
- */
-
-var s = 1000;
-var m = s * 60;
-var h = m * 60;
-var d = h * 24;
-var y = d * 365.25;
-
-/**
- * Parse or format the given `val`.
- *
- * Options:
- *
- *  - `long` verbose formatting [false]
- *
- * @param {String|Number} val
- * @param {Object} options
- * @return {String|Number}
- * @api public
- */
-
-module.exports = function(val, options){
-  options = options || {};
-  if ('string' == typeof val) return parse(val);
-  return options.long
-    ? long(val)
-    : short(val);
-};
-
-/**
- * Parse the given `str` and return milliseconds.
- *
- * @param {String} str
- * @return {Number}
- * @api private
- */
-
-function parse(str) {
-  var match = /^((?:\d+)?\.?\d+) *(ms|seconds?|s|minutes?|m|hours?|h|days?|d|years?|y)?$/i.exec(str);
-  if (!match) return;
-  var n = parseFloat(match[1]);
-  var type = (match[2] || 'ms').toLowerCase();
-  switch (type) {
-    case 'years':
-    case 'year':
-    case 'y':
-      return n * y;
-    case 'days':
-    case 'day':
-    case 'd':
-      return n * d;
-    case 'hours':
-    case 'hour':
-    case 'h':
-      return n * h;
-    case 'minutes':
-    case 'minute':
-    case 'm':
-      return n * m;
-    case 'seconds':
-    case 'second':
-    case 's':
-      return n * s;
-    case 'ms':
-      return n;
-  }
-}
-
-/**
- * Short format for `ms`.
- *
- * @param {Number} ms
- * @return {String}
- * @api private
- */
-
-function short(ms) {
-  if (ms >= d) return Math.round(ms / d) + 'd';
-  if (ms >= h) return Math.round(ms / h) + 'h';
-  if (ms >= m) return Math.round(ms / m) + 'm';
-  if (ms >= s) return Math.round(ms / s) + 's';
-  return ms + 'ms';
-}
-
-/**
- * Long format for `ms`.
- *
- * @param {Number} ms
- * @return {String}
- * @api private
- */
-
-function long(ms) {
-  return plural(ms, d, 'day')
-    || plural(ms, h, 'hour')
-    || plural(ms, m, 'minute')
-    || plural(ms, s, 'second')
-    || ms + ' ms';
-}
-
-/**
- * Pluralization helper.
- */
-
-function plural(ms, n, name) {
-  if (ms < n) return;
-  if (ms < n * 1.5) return Math.floor(ms / n) + ' ' + name;
-  return Math.ceil(ms / n) + ' ' + name + 's';
-}
-
-},{}],38:[function(require,module,exports){
-// shim for using process in browser
-
-var process = module.exports = {};
-
-process.nextTick = (function () {
-    var canSetImmediate = typeof window !== 'undefined'
-    && window.setImmediate;
-    var canMutationObserver = typeof window !== 'undefined'
-    && window.MutationObserver;
-    var canPost = typeof window !== 'undefined'
-    && window.postMessage && window.addEventListener
-    ;
-
-    if (canSetImmediate) {
-        return function (f) { return window.setImmediate(f) };
-    }
-
-    var queue = [];
-
-    if (canMutationObserver) {
-        var hiddenDiv = document.createElement("div");
-        var observer = new MutationObserver(function () {
-            var queueList = queue.slice();
-            queue.length = 0;
-            queueList.forEach(function (fn) {
-                fn();
-            });
-        });
-
-        observer.observe(hiddenDiv, { attributes: true });
-
-        return function nextTick(fn) {
-            if (!queue.length) {
-                hiddenDiv.setAttribute('yes', 'no');
-            }
-            queue.push(fn);
-        };
-    }
-
-    if (canPost) {
-        window.addEventListener('message', function (ev) {
-            var source = ev.source;
-            if ((source === window || source === null) && ev.data === 'process-tick') {
-                ev.stopPropagation();
-                if (queue.length > 0) {
-                    var fn = queue.shift();
-                    fn();
-                }
-            }
-        }, true);
-
-        return function nextTick(fn) {
-            queue.push(fn);
-            window.postMessage('process-tick', '*');
-        };
-    }
-
-    return function nextTick(fn) {
-        setTimeout(fn, 0);
-    };
-})();
-
-process.title = 'browser';
-process.browser = true;
-process.env = {};
-process.argv = [];
-
-function noop() {}
-
-process.on = noop;
-process.addListener = noop;
-process.once = noop;
-process.off = noop;
-process.removeListener = noop;
-process.removeAllListeners = noop;
-process.emit = noop;
-
-process.binding = function (name) {
-    throw new Error('process.binding is not supported');
-};
-
-// TODO(shtylman)
-process.cwd = function () { return '/' };
-process.chdir = function (dir) {
-    throw new Error('process.chdir is not supported');
-};
-
-},{}],39:[function(require,module,exports){
+},{"./polar.js":26}],33:[function(require,module,exports){
 var Dragon = require('dragonjs'),
     Dimension = Dragon.Dimension,
     CollisionHandler = Dragon.CollisionHandler;
@@ -2448,10 +1813,9 @@ module.exports = CollisionHandler({
     gridSize: Dimension(5, 5)
 });
 
-},{"dragonjs":12}],40:[function(require,module,exports){
+},{"dragonjs":12}],34:[function(require,module,exports){
 var Dragon = require('dragonjs'),
-    Game = Dragon.Game,
-    getJSON = require('get-json');
+    Game = Dragon.Game;
 
 Game.addScreens(
     require('./screens/main.js')
@@ -2460,25 +1824,7 @@ Game.run({
     debug: false
 });
 
-/**
- * Side test to prove that the outside world
- * can be touched after porting to mobile.
- * This means that external services can be used.
- */
-getJSON(
-    'http://time.jsontest.com',
-    function (err, res) {
-        if (err) {
-            console.log('Could not contact jsontest.com');
-        } else {
-            console.log(
-                JSON.stringify(res, null, 3)
-            );
-        }
-    }
-);
-
-},{"./screens/main.js":41,"dragonjs":12,"get-json":31}],41:[function(require,module,exports){
+},{"./screens/main.js":35,"dragonjs":12}],35:[function(require,module,exports){
 var Dragon = require('dragonjs'),
     Screen = Dragon.Screen,
     canvas = Dragon.Game.canvas,
@@ -2513,7 +1859,7 @@ module.exports = Screen({
     floorSet: floor
 });
 
-},{"../collisions/main.js":39,"../sprites/button-jump.js":42,"../sprites/ground.js":43,"../sprites/hills-far.js":44,"../sprites/hills-near.js":45,"../sprites/runner.js":46,"../sprites/sky.js":47,"../sprites/sun.js":48,"dragonjs":12}],42:[function(require,module,exports){
+},{"../collisions/main.js":33,"../sprites/button-jump.js":36,"../sprites/ground.js":37,"../sprites/hills-far.js":38,"../sprites/hills-near.js":39,"../sprites/runner.js":40,"../sprites/sky.js":41,"../sprites/sun.js":42,"dragonjs":12}],36:[function(require,module,exports){
 var Dragon = require('dragonjs'),
     Game = Dragon.Game,
     Point = Dragon.Point,
@@ -2527,7 +1873,7 @@ var Dragon = require('dragonjs'),
 module.exports = Sprite({
     name: 'button-jump',
     collisionSets: [
-        Game.collisions
+        Dragon.collisions
     ],
     mask: Rect(
         Point(),
@@ -2566,7 +1912,7 @@ module.exports = Sprite({
     }
 });
 
-},{"./runner.js":46,"dragonjs":12}],43:[function(require,module,exports){
+},{"./runner.js":40,"dragonjs":12}],37:[function(require,module,exports){
 var Dragon = require('dragonjs'),
     Game = Dragon.Game,
     canvas = Dragon.Game.canvas,
@@ -2587,7 +1933,7 @@ module.exports = function (startx) {
         name: 'ground',
         collisionSets: [
             collisions,
-            Game.collisions
+            Dragon.collisions
         ],
         mask: Rect(
             Point(),
@@ -2627,7 +1973,7 @@ module.exports = function (startx) {
     });
 };
 
-},{"../collisions/main.js":39,"./runner.js":46,"dragonjs":12}],44:[function(require,module,exports){
+},{"../collisions/main.js":33,"./runner.js":40,"dragonjs":12}],38:[function(require,module,exports){
 var Dragon = require('dragonjs'),
     canvas = Dragon.Game.canvas,
     Point = Dragon.Point,
@@ -2668,7 +2014,7 @@ module.exports = Sprite({
     }
 });
 
-},{"./runner.js":46,"dragonjs":12}],45:[function(require,module,exports){
+},{"./runner.js":40,"dragonjs":12}],39:[function(require,module,exports){
 var Dragon = require('dragonjs'),
     canvas = Dragon.Game.canvas,
     Point = Dragon.Point,
@@ -2709,18 +2055,15 @@ module.exports = Sprite({
     }
 });
 
-},{"./runner.js":46,"dragonjs":12}],46:[function(require,module,exports){
+},{"./runner.js":40,"dragonjs":12}],40:[function(require,module,exports){
 var Dragon = require('dragonjs'),
-    Game = Dragon.Game,
     Mouse = Dragon.Mouse,
-    KeyDown = Dragon.Keyboard,
     Point = Dragon.Point,
     Dimension = Dragon.Dimension,
     Rect = Dragon.Rectangle,
     Sprite = Dragon.Sprite,
     AnimationStrip = Dragon.AnimationStrip,
     SpriteSheet = Dragon.SpriteSheet,
-    Polar = Dragon.Polar,
     collisions = require('../collisions/main.js'),
     walking = false;
 
@@ -2728,7 +2071,7 @@ module.exports = Sprite({
     name: 'runner',
     collisionSets: [
         collisions,
-        Game.collisions
+        Dragon.collisions
     ],
     mask: Rect(
         Point(),
@@ -2816,7 +2159,7 @@ module.exports = Sprite({
     }
 });
 
-},{"../collisions/main.js":39,"dragonjs":12}],47:[function(require,module,exports){
+},{"../collisions/main.js":33,"dragonjs":12}],41:[function(require,module,exports){
 var Dragon = require('dragonjs'),
     Game = Dragon.Game,
     Point = Dragon.Point,
@@ -2841,7 +2184,7 @@ module.exports = Sprite({
     depth: 20
 });
 
-},{"../collisions/main.js":39,"dragonjs":12}],48:[function(require,module,exports){
+},{"../collisions/main.js":33,"dragonjs":12}],42:[function(require,module,exports){
 var Dragon = require('dragonjs'),
     canvas = Dragon.Game.canvas,
     Point = Dragon.Point,
@@ -2868,12 +2211,12 @@ module.exports = Sprite({
 }).extend({
     update: function () {
         if (runner.direction > 0) {
-            this.speed.x = -0.2;
+            this.speed.x = -0.1;
         } else {
-            this.speed.x = 0.2;
+            this.speed.x = 0.1;
         }
         this.base.update();
     }
 });
 
-},{"./runner.js":46,"dragonjs":12}]},{},[40]);
+},{"./runner.js":40,"dragonjs":12}]},{},[34]);

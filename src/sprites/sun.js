@@ -24,9 +24,9 @@ module.exports = Sprite({
 }).extend({
     update: function () {
         if (runner.direction > 0) {
-            this.speed.x = -0.2;
+            this.speed.x = -0.1;
         } else {
-            this.speed.x = 0.2;
+            this.speed.x = 0.1;
         }
         this.base.update();
     }

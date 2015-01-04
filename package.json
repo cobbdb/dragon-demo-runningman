@@ -7,7 +7,6 @@
     "matchdep": "latest"
   },
   "dependencies": {
-    "dragonjs": "latest",
-    "get-json": "0.0.2"
+    "dragonjs": "latest"
   }
 }
