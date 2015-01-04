@@ -5,32 +5,33 @@ var Dragon = require('dragonjs'),
     Rect = Dragon.Rectangle,
     Sprite = Dragon.Sprite,
     AnimationStrip = Dragon.AnimationStrip,
-    SpriteSheet = Dragon.SpriteSheet,
-    runner = require('./runner.js');
+    SpriteSheet = Dragon.SpriteSheet;
 
 module.exports = Sprite({
-    name: 'button-jump',
+    name: 'button-pause',
     collisionSets: [
         Dragon.collisions
     ],
     mask: Rect(
         Point(),
-        Dimension(88, 31)
+        Dimension(104, 31)
     ),
     strips: {
-        'button-jump': AnimationStrip({
+        'button-pause': AnimationStrip({
             sheet: SpriteSheet({
                 src: 'button.png'
             }),
             size: Dimension(88, 31)
         })
     },
-    startingStrip: 'button-jump',
-    pos: Point(10, 50),
+    startingStrip: 'button-pause',
+    pos: Point(10, 10),
+    size: Dimension(104, 31),
     on: {
         'colliding/screentap': function () {
             this.strip.frame = 1;
-            runner.jump();
+            Game.screen('main').pause();
+            Game.screen('pause').start();
         }
     }
 }).extend({
@@ -43,8 +44,8 @@ module.exports = Sprite({
         ctx.font = '30px Verdana';
         ctx.fillStyle = 'white';
         ctx.fillText(
-            'JUMP',
-            this.pos.x + 5,
+            'PAUSE',
+            this.pos.x + 1,
             this.pos.y + 27
         );
     }

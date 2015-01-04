@@ -21,8 +21,10 @@ module.exports = Screen({
         require('../sprites/hills-near.js'),
         require('../sprites/hills-far.js'),
         require('../sprites/sun.js'),
-        require('../sprites/button-jump.js')
+        require('../sprites/button-jump.js'),
+        require('../sprites/button-pause.js')
     ].concat(floor),
+    depth: 5,
     one: {
         ready: function () {
             this.start();

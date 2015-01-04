@@ -17,8 +17,7 @@ module.exports = function (startx) {
     return Sprite({
         name: 'ground',
         collisionSets: [
-            collisions,
-            Dragon.collisions
+            collisions
         ],
         mask: Rect(
             Point(),
