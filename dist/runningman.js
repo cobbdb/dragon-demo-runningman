@@ -2227,7 +2227,7 @@ module.exports = Sprite({
     }
 }).extend({
     draw: function (ctx) {
-        ctx.fillStyle = 'rgba(112, 143, 138, 0.75)';
+        ctx.fillStyle = 'rgba(112, 143, 138, 0.4)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         this.base.draw(ctx);
     }
