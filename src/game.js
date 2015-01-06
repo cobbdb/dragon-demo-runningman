@@ -6,5 +6,5 @@ Game.addScreens([
     require('./screens/pause.js')
 ]);
 Game.run({
-    debug: false
+    debug: true
 });

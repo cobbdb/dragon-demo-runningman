@@ -396,7 +396,6 @@ module.exports = function (opts) {
 module.exports = function (opts) {
     var audio = document.createElement('audio'),
         oldplay = audio.play;
-    audio.ready = false;
     audio.loop = opts.loop || false;
     audio.volume = opts.volume || 1;
 
@@ -411,13 +410,16 @@ module.exports = function (opts) {
         }
         oldplay.call(this);
     };
+    /**
+     * Pause playback and reset time index.
+     */
+    audio.stop = function () {
+        this.pause();
+        this.currentTime = 0;
+    };
 
     opts.on = opts.on || {};
-    opts.on.load = opts.on.load || function () {};
-    audio.onloadeddata = function () {
-        this.ready = true;
-        opts.on.load();
-    };
+    audio.onloadeddata = opts.on.load;
     audio.onplay = opts.on.play;
     audio.onplaying = opts.on.playing;
     audio.onended = opts.on.ended;
@@ -995,7 +997,7 @@ module.exports = {
                 that.draw();
                 that.teardown();
                 FrameCounter.countFrame();
-            }, speed);
+            }, 1);//speed);
         }
     },
     kill: function () {
@@ -1869,7 +1871,7 @@ Game.addScreens([
     require('./screens/pause.js')
 ]);
 Game.run({
-    debug: false
+    debug: true
 });
 
 },{"./screens/main.js":36,"./screens/pause.js":37,"dragonjs":13}],36:[function(require,module,exports){
