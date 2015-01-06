@@ -3,7 +3,7 @@
   "devDependencies": {
     "grunt": "latest",
     "grunt-browserify": "latest",
-    "grunt-contrib-compress": "^0.13.0",
+    "grunt-contrib-compress": "latest",
     "grunt-contrib-uglify": "latest",
     "matchdep": "latest"
   },
