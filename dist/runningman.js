@@ -1878,7 +1878,7 @@ var Dragon = require('dragonjs'),
     canvas = Dragon.Game.canvas,
     Ground = require('../sprites/ground.js'),
     music = Dragon.Audio({
-        src: 'bgm.mp3',
+        src: 'bgm.ogg',
         loop: true,
         volume: 0.2
     }),
@@ -1995,7 +1995,7 @@ var Dragon = require('dragonjs'),
     AnimationStrip = Dragon.AnimationStrip,
     SpriteSheet = Dragon.SpriteSheet,
     sound = Dragon.Audio({
-        src: 'pause.mp3'
+        src: 'pause.ogg'
     });
 
 module.exports = Sprite({
@@ -2245,7 +2245,7 @@ var Dragon = require('dragonjs'),
     collisions = require('../collisions/main.js'),
     walking = false,
     jump = Dragon.Audio({
-        src: 'jump.mp3'
+        src: 'jump.ogg'
     });
 
 module.exports = Sprite({

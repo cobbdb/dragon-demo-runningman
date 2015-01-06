@@ -3,7 +3,7 @@ var Dragon = require('dragonjs'),
     canvas = Dragon.Game.canvas,
     Ground = require('../sprites/ground.js'),
     music = Dragon.Audio({
-        src: 'bgm.mp3',
+        src: 'bgm.ogg',
         loop: true,
         volume: 0.2
     }),

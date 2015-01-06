@@ -7,7 +7,7 @@ var Dragon = require('dragonjs'),
     AnimationStrip = Dragon.AnimationStrip,
     SpriteSheet = Dragon.SpriteSheet,
     sound = Dragon.Audio({
-        src: 'pause.mp3'
+        src: 'pause.ogg'
     });
 
 module.exports = Sprite({

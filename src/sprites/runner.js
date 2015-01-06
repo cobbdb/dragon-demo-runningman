@@ -9,7 +9,7 @@ var Dragon = require('dragonjs'),
     collisions = require('../collisions/main.js'),
     walking = false,
     jump = Dragon.Audio({
-        src: 'jump.mp3'
+        src: 'jump.ogg'
     });
 
 module.exports = Sprite({
