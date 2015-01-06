@@ -5,7 +5,10 @@ var Dragon = require('dragonjs'),
     Rect = Dragon.Rectangle,
     Sprite = Dragon.Sprite,
     AnimationStrip = Dragon.AnimationStrip,
-    SpriteSheet = Dragon.SpriteSheet;
+    SpriteSheet = Dragon.SpriteSheet,
+    sound = Dragon.Audio({
+        src: 'pause.mp3'
+    });
 
 module.exports = Sprite({
     name: 'button-pause',
@@ -32,6 +35,7 @@ module.exports = Sprite({
             this.strip.frame = 1;
             Game.screen('main').pause();
             Game.screen('pause').start();
+            sound.play(true);
         }
     }
 }).extend({

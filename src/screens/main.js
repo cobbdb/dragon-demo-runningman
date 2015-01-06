@@ -2,6 +2,11 @@ var Dragon = require('dragonjs'),
     Screen = Dragon.Screen,
     canvas = Dragon.Game.canvas,
     Ground = require('../sprites/ground.js'),
+    music = Dragon.Audio({
+        src: 'bgm.mp3',
+        loop: true,
+        volume: 0.2
+    }),
     floor = [],
     i, len;
 
@@ -25,9 +30,15 @@ module.exports = Screen({
         require('../sprites/button-pause.js')
     ].concat(floor),
     depth: 5,
-    one: {
+    on: {
         ready: function () {
             this.start();
+        },
+        start: function () {
+            music.play();
+        },
+        pause: function () {
+            music.pause();
         }
     }
 }).extend({

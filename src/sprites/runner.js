@@ -7,7 +7,10 @@ var Dragon = require('dragonjs'),
     AnimationStrip = Dragon.AnimationStrip,
     SpriteSheet = Dragon.SpriteSheet,
     collisions = require('../collisions/main.js'),
-    walking = false;
+    walking = false,
+    jump = Dragon.Audio({
+        src: 'jump.mp3'
+    });
 
 module.exports = Sprite({
     name: 'runner',
@@ -74,9 +77,6 @@ module.exports = Sprite({
             this.useStrip('jump');
             this.strip.speed = 20;
         },
-        'colliding/screentap': function () {
-            this.jump();
-        },
         'collide/screenedge/left': function () {
             this.direction = 1;
         },
@@ -97,6 +97,7 @@ module.exports = Sprite({
             this.speed.y = -30;
             this.useStrip('jump');
             this.strip.speed = 10;
+            jump.play(true);
         }
     }
 });
