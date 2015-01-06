@@ -2,8 +2,9 @@
   "name": "runningman",
   "devDependencies": {
     "grunt": "latest",
-    "grunt-contrib-uglify": "latest",
     "grunt-browserify": "latest",
+    "grunt-contrib-compress": "^0.13.0",
+    "grunt-contrib-uglify": "latest",
     "matchdep": "latest"
   },
   "dependencies": {
