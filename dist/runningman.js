@@ -840,11 +840,11 @@ module.exports = function (opts) {
 
 },{"baseclassjs":2}],19:[function(require,module,exports){
 var timeSinceLastSecond = frameCountThisSecond = frameRate = 0,
-    timeLastFrame = new Date().getTime();
+    timeLastFrame = Date.now();
 
 module.exports = {
     countFrame: function () {
-        var timeThisFrame = new Date().getTime(),
+        var timeThisFrame = Date.now(),
             elapsedTime = timeThisFrame - timeLastFrame;
 
         frameCountThisSecond += 1;
@@ -882,25 +882,24 @@ var CollisionHandler = require('./collision-handler.js'),
     log = require('./log.js'),
     dragonCollisions = require('./dragon-collisions.js'),
     debug = false,
-    heartbeat = false,
-    throttle = 30,
     screens = [],
     screenMap = {},
     screensToAdd = [],
     screenRemoved = false,
     loadQueue = {},
+    running = false,
     masks = {
         screentap: Collidable({
             name: 'screentap',
-            mask: Circle(Point(), 15)
+            mask: Circle(Point(), 8)
         }),
         screendrag: Collidable({
             name: 'screendrag',
-            mask: Circle(Point(), 25)
+            mask: Circle(Point(), 8)
         }),
         screenhold: Collidable({
             name: 'screenhold',
-            mask: Circle(Point(), 15)
+            mask: Circle(Point(), 8)
         }),
         screenedge: {
             top: Collidable({
@@ -975,34 +974,32 @@ module.exports = {
         screenRemoved = true;
     },
     /**
-     * @param {Boolean} [opts.debug] Defaults to false.
-     * @param {Number} [opts.speed]
-     * @param {String} [opts.orientation] Defaults to portrait.
+     * @param {Boolean} [debugMode] Defaults to false.
      */
-    run: function (opts) {
-        var speed,
-            that = this;
-
-        opts = opts || {};
-        speed = opts.speed || throttle;
-        debug = opts.debug;
-
-        if (debug) {
-            window.Dragon = this;
-        }
-
-        if (!heartbeat) {
-            heartbeat = window.setInterval(function () {
+    run: function (debugMode) {
+        var that = this,
+            step = function () {
                 that.update();
                 that.draw();
                 that.teardown();
                 FrameCounter.countFrame();
-            }, 1);//speed);
+                if (running) {
+                    window.requestAnimationFrame(step);
+                }
+            };
+
+        debug = debugMode;
+        if (debugMode) {
+            window.Dragon = this;
+        }
+
+        if (!running) {
+            running = true;
+            window.requestAnimationFrame(step);
         }
     },
     kill: function () {
-        window.clearInterval(heartbeat);
-        heartbeat = false;
+        running = false;
         screens.forEach(function (screen) {
             screen.stop();
         });
@@ -1870,9 +1867,7 @@ Game.addScreens([
     require('./screens/main.js'),
     require('./screens/pause.js')
 ]);
-Game.run({
-    debug: true
-});
+Game.run(false);
 
 },{"./screens/main.js":36,"./screens/pause.js":37,"dragonjs":13}],36:[function(require,module,exports){
 var Dragon = require('dragonjs'),
@@ -2245,7 +2240,6 @@ var Dragon = require('dragonjs'),
     AnimationStrip = Dragon.AnimationStrip,
     SpriteSheet = Dragon.SpriteSheet,
     collisions = require('../collisions/main.js'),
-    walking = false,
     jump = Dragon.Audio({
         src: 'jump.ogg'
     });
@@ -2295,43 +2289,56 @@ module.exports = Sprite({
     depth: 2,
     on: {
         'colliding/ground': function (other) {
-            this.pos.y = other.pos.y - this.mask.height;
-            this.speed.y = 0;
-            this.speed.x = 0.7 * this.direction;
-            this.base.update();
-            if (this.direction > 0) {
-                this.useStrip('walk-right');
-            } else {
-                this.useStrip('walk-left');
+            if (!this.flying) {
+                this.pos.y = other.pos.y - this.mask.height;
+                this.speed.y = 0;
+                this.speed.x = 0.5 * this.direction;
+                this.base.update();
+                if (this.direction > 0) {
+                    this.useStrip('walk-right');
+                } else {
+                    this.useStrip('walk-left');
+                }
+                this.walking = true;
             }
-            walking = true;
         },
         'colliding/screendrag': function () {
-            var pos = Mouse.offset.clone();
-            pos.x -= this.size.width / 2;
-            pos.y -= this.size.height / 2;
-            this.move(pos.x, pos.y);
-            this.speed.y = 0;
-            this.useStrip('jump');
-            this.strip.speed = 20;
+            this.flying = true;
         },
         'collide/screenedge/left': function () {
-            this.direction = 1;
+            if (!this.flying) {
+                this.direction = 1;
+            }
         },
         'collide/screenedge/right': function () {
-            this.direction = -1;
+            if (!this.flying) {
+                this.direction = -1;
+            }
         }
     }
 }).extend({
     update: function () {
+        var pos;
         this.speed.y += 3;
-        this.speed.x = 0;
+        if (this.flying) {
+            this.flying = Mouse.is.dragging;
+            pos = Mouse.offset.clone();
+            pos.x -= this.size.width / 2;
+            pos.y -= this.size.height / 2;
+            this.move(pos.x, pos.y);
+            this.speed.y = 0;
+            this.speed.x = 0;
+            this.useStrip('jump');
+            this.strip.speed = 20;
+        }
         this.base.update();
     },
     direction: 1,
+    flying: false,
+    walking: false,
     jump: function () {
-        if (walking) {
-            walking = false;
+        if (this.walking) {
+            this.walking = false;
             this.speed.y = -30;
             this.useStrip('jump');
             this.strip.speed = 10;
