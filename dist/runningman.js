@@ -285,9 +285,6 @@ module.exports = function (opts) {
         direction = 1;
 
     return {
-        ready: function () {
-            return opts.sheet.ready;
-        },
         size: size,
         frame: 0,
         speed: opts.speed || 0,
@@ -1703,9 +1700,6 @@ module.exports = function (opts) {
     );
 
     return Collidable(opts).extend({
-        ready: function () {
-            return this.strip.ready();
-        },
         strip: stripMap[opts.startingStrip],
         useStrip: function (name) {
             // Do nothing if already using this strip.
