@@ -1459,37 +1459,48 @@ module.exports = function (opts) {
         updating = false,
         drawing = false;
 
+    // Load queued sprites into the screen.
+    function ingestSprites() {
+        if (spritesToAdd.length) {
+            // Update the master sprite list after updates.
+            spritesToAdd.forEach(function (sprite) {
+                sprites.push(sprite);
+                if (sprite.name) {
+                    spriteMap[sprite.name] = sprite;
+                }
+                sprite.trigger('ready');
+            });
+            // Sort by descending sprite depths: 3, 2, 1, 0
+            sprites.sort(function (a, b) {
+                return b.depth - a.depth;
+            });
+            spritesToAdd = [];
+        }
+    }
+
     self = BaseClass({
         name: opts.name,
         load: function (cb) {
             if (!loaded) {
                 this.addSprites({
                     set: opts.spriteSet,
-                    onload: cb
+                    onload: cb,
+                    force: true
                 });
                 loaded = true;
             }
         },
         start: function () {
-            sprites.forEach(function (sprite) {
-                sprite.strip.start();
-            });
             updating = true;
             drawing = true;
             this.trigger('start');
         },
         pause: function () {
-            sprites.forEach(function (sprite) {
-                sprite.strip.pause();
-            });
             updating = false;
             drawing = true;
             this.trigger('pause');
         },
         stop: function () {
-            sprites.forEach(function (sprite) {
-                sprite.strip.stop();
-            });
             updating = false;
             drawing = false;
             this.trigger('stop');
@@ -1519,6 +1530,9 @@ module.exports = function (opts) {
          * are ready.
          * @param {Array|Sprite} opts.set
          * @param {Function} [onload]
+         * @param {Boolean} [force] Defaults to false. True
+         * to ingest sprites immediately outside of the normal
+         * game pulse.
          */
         addSprites: function (opts) {
             var id, onload, set;
@@ -1535,6 +1549,9 @@ module.exports = function (opts) {
                         loadQueue[id] -= 1;
                         if (loadQueue[id] === 0) {
                             spritesToAdd = spritesToAdd.concat(set);
+                            if (opts.force) {
+                                ingestSprites();
+                            }
                             onload();
                         }
                     });
@@ -1561,21 +1578,8 @@ module.exports = function (opts) {
                 collisionMap[i].handleCollisions();
             }
 
-            if (spritesToAdd.length) {
-                // Update the master sprite list after updates.
-                spritesToAdd.forEach(function (sprite) {
-                    sprites.push(sprite);
-                    if (sprite.name) {
-                        spriteMap[sprite.name] = sprite;
-                    }
-                    sprite.strip.start();
-                });
-                // Sort by descending sprite depths.
-                sprites.sort(function (a, b) {
-                    return b.depth - a.depth;
-                });
-                spritesToAdd = [];
-            }
+            // Load in any queued sprites.
+            ingestSprites();
         },
         draw: function (ctx, debug) {
             var name;
@@ -1687,7 +1691,9 @@ var BaseClass = require('baseclassjs'),
 module.exports = function (opts) {
     var loaded = false,
         stripMap = opts.strips || {},
-        pos = opts.pos || Point();
+        pos = opts.pos || Point(),
+        updating = false,
+        drawing = false;
 
     opts.mask = opts.mask || Rectangle();
     opts.offset = Point(
@@ -1698,6 +1704,10 @@ module.exports = function (opts) {
         pos.x + opts.offset.x,
         pos.x + opts.offset.y
     );
+    opts.one = opts.one || {};
+    opts.one.ready = opts.one.ready || function () {
+        this.start();
+    };
 
     return Collidable(opts).extend({
         strip: stripMap[opts.startingStrip],
@@ -1721,22 +1731,46 @@ module.exports = function (opts) {
         rotation: opts.rotation || 0,
         depth: opts.depth || 0,
         speed: opts.speed || Point(),
+        start: function () {
+            updating = true;
+            drawing = true;
+            this.strip.start();
+            this.trigger('start');
+        },
+        pause: function () {
+            updating = false;
+            drawing = true;
+            this.strip.pause();
+            this.trigger('pause');
+        },
+        stop: function () {
+            updating = false;
+            drawing = false;
+            this.strip.stop();
+            this.trigger('stop');
+        },
         update: function () {
-            this.shift();
-            this.strip.update();
-            this.base.update();
+            if (updating) {
+                this.shift();
+                this.strip.update();
+                this.base.update();
+            }
         },
         draw: function (ctx) {
-            var stripSize = this.strip.size;
-            this.strip.draw(
-                ctx,
-                this.pos,
-                Dimension(
-                    this.scale * this.size.width / stripSize.width,
-                    this.scale * this.size.height / stripSize.height
-                ),
-                this.rotation
-            );
+            var stripSize;
+
+            if (drawing) {
+                stripSize = this.strip.size;
+                this.strip.draw(
+                    ctx,
+                    this.pos,
+                    Dimension(
+                        this.scale * this.size.width / stripSize.width,
+                        this.scale * this.size.height / stripSize.height
+                    ),
+                    this.rotation
+                );
+            }
         },
         load: function (cb) {
             var name, loadQueue;
